@@ -1,0 +1,59 @@
+import { create } from 'zustand'
+import { Annotation } from '@/types/annotation'
+
+interface AnnotationState {
+  annotations: Annotation[]
+  selectedAnnotationId: string | null
+  isLoading: boolean
+
+  // Actions
+  setAnnotations: (annotations: Annotation[]) => void
+  addAnnotation: (annotation: Annotation) => void
+  updateAnnotation: (id: string, updates: Partial<Annotation>) => void
+  deleteAnnotation: (id: string) => void
+  selectAnnotation: (id: string | null) => void
+  getAnnotationsForInstance: (sopInstanceUID: string) => Annotation[]
+  setLoading: (loading: boolean) => void
+  reset: () => void
+}
+
+const initialState = {
+  annotations: [],
+  selectedAnnotationId: null,
+  isLoading: false,
+}
+
+export const useAnnotationStore = create<AnnotationState>((set, get) => ({
+  ...initialState,
+
+  setAnnotations: (annotations) => set({ annotations }),
+
+  addAnnotation: (annotation) =>
+    set((state) => ({
+      annotations: [...state.annotations, annotation],
+    })),
+
+  updateAnnotation: (id, updates) =>
+    set((state) => ({
+      annotations: state.annotations.map((ann) =>
+        ann.id === id ? ({ ...ann, ...updates } as Annotation) : ann
+      ),
+    })),
+
+  deleteAnnotation: (id) =>
+    set((state) => ({
+      annotations: state.annotations.filter((ann) => ann.id !== id),
+    })),
+
+  selectAnnotation: (id) => set({ selectedAnnotationId: id }),
+
+  getAnnotationsForInstance: (sopInstanceUID) => {
+    return get().annotations.filter(
+      (ann) => ann.sopInstanceUID === sopInstanceUID
+    )
+  },
+
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  reset: () => set(initialState),
+}))

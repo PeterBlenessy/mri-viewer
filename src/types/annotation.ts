@@ -1,0 +1,77 @@
+// Annotation types for Phase 2
+export type AnnotationType = 'marker' | 'measurement' | 'region' | 'text'
+export type AnnotationSeverity = 'normal' | 'warning' | 'critical'
+
+export interface BaseAnnotation {
+  id: string
+  type: AnnotationType
+  seriesInstanceUID: string
+  sopInstanceUID: string
+  instanceNumber: number
+  severity: AnnotationSeverity
+  description: string
+  createdAt: string
+  createdBy: string
+}
+
+export interface MarkerAnnotation extends BaseAnnotation {
+  type: 'marker'
+  position: Point2D
+  label?: string
+}
+
+export interface MeasurementAnnotation extends BaseAnnotation {
+  type: 'measurement'
+  points: Point2D[]
+  measurementType: 'length' | 'angle' | 'area'
+  value: number
+  unit: string
+}
+
+export interface RegionAnnotation extends BaseAnnotation {
+  type: 'region'
+  points: Point2D[]
+  closed: boolean
+}
+
+export interface TextAnnotation extends BaseAnnotation {
+  type: 'text'
+  position: Point2D
+  text: string
+  fontSize?: number
+}
+
+export type Annotation =
+  | MarkerAnnotation
+  | MeasurementAnnotation
+  | RegionAnnotation
+  | TextAnnotation
+
+export interface Point2D {
+  x: number
+  y: number
+}
+
+export interface AnnotationStyle {
+  color: string
+  lineWidth: number
+  fillOpacity: number
+}
+
+export const severityStyles: Record<AnnotationSeverity, AnnotationStyle> = {
+  normal: {
+    color: '#10b981', // green
+    lineWidth: 2,
+    fillOpacity: 0.2,
+  },
+  warning: {
+    color: '#f59e0b', // yellow
+    lineWidth: 2,
+    fillOpacity: 0.2,
+  },
+  critical: {
+    color: '#ef4444', // red
+    lineWidth: 3,
+    fillOpacity: 0.3,
+  },
+}
