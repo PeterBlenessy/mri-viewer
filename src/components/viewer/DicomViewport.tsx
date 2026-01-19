@@ -12,12 +12,18 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const [isInitialized, setIsInitialized] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
+  const [isModifierKeyPressed, setIsModifierKeyPressed] = useState(false)
   const [currentWL, setCurrentWL] = useState({ width: 0, center: 0 })
+  const [currentPan, setCurrentPan] = useState({ x: 0, y: 0 })
   const [showZoomIndicator, setShowZoomIndicator] = useState(false)
   const [currentZoom, setCurrentZoom] = useState(1)
+  const [isZoomingIn, setIsZoomingIn] = useState(true)
   const dragStartPos = useRef({ x: 0, y: 0 })
   const dragStartWL = useRef({ width: 0, center: 0 })
+  const dragStartPan = useRef({ x: 0, y: 0 })
   const currentWLRef = useRef({ width: 0, center: 0 })
+  const currentPanRef = useRef({ x: 0, y: 0 })
   const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const fitScaleRef = useRef(1)
 
@@ -25,6 +31,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const settings = useViewportStore((state) => state.settings)
   const setWindowLevel = useViewportStore((state) => state.setWindowLevel)
   const setZoom = useViewportStore((state) => state.setZoom)
+  const setPan = useViewportStore((state) => state.setPan)
 
   // Initialize Cornerstone
   useEffect(() => {
@@ -79,6 +86,29 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       }
     }
   }, [isInitialized])
+
+  // Track modifier key state for cursor indication
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        setIsModifierKeyPressed(true)
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setIsModifierKeyPressed(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
 
   // Load and display image
   useEffect(() => {
@@ -156,9 +186,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     loadAndDisplayImage()
   }, [isInitialized, currentInstance])
 
-  // Update viewport settings when they change (but not during dragging)
+  // Update viewport settings when they change (but not during dragging or panning)
   useEffect(() => {
-    if (!isInitialized || !currentInstance || !canvasRef.current || isDragging) return
+    if (!isInitialized || !currentInstance || !canvasRef.current || isDragging || isPanning) return
 
     const element = canvasRef.current
 
@@ -179,7 +209,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     } catch (err) {
       console.error('Failed to update viewport:', err)
     }
-  }, [isInitialized, currentInstance, settings, isDragging])
+  }, [isInitialized, currentInstance, settings, isDragging, isPanning])
 
   // Mouse event handlers for window/level adjustment
   useEffect(() => {
@@ -189,7 +219,8 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     let isCurrentlyDragging = false
 
     const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 0) { // Left mouse button
+      // Left mouse button without modifier keys (Ctrl/Cmd are for pan)
+      if (e.button === 0 && !e.ctrlKey && !e.metaKey) {
         isCurrentlyDragging = true
         setIsDragging(true)
         dragStartPos.current = { x: e.clientX, y: e.clientY }
@@ -264,6 +295,87 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     }
   }, [isInitialized, settings.windowWidth, settings.windowCenter, setWindowLevel])
 
+  // Mouse event handlers for pan (Ctrl/Cmd + drag)
+  useEffect(() => {
+    const element = canvasRef.current
+    if (!element || !isInitialized) return
+
+    let isCurrentlyPanning = false
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Left mouse button + Ctrl (Windows/Linux) or Cmd (Mac)
+      if (e.button === 0 && (e.ctrlKey || e.metaKey)) {
+        isCurrentlyPanning = true
+        setIsPanning(true)
+        dragStartPos.current = { x: e.clientX, y: e.clientY }
+        // Store the starting pan values from current settings
+        dragStartPan.current = { x: settings.pan.x, y: settings.pan.y }
+        currentPanRef.current = { ...dragStartPan.current }
+        setCurrentPan(dragStartPan.current)
+        e.preventDefault()
+      }
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isCurrentlyPanning) return
+
+      // Calculate total delta from initial mouse down position
+      const totalDeltaX = e.clientX - dragStartPos.current.x
+      const totalDeltaY = e.clientY - dragStartPos.current.y
+
+      // Calculate new pan position
+      const newPanX = dragStartPan.current.x + totalDeltaX
+      const newPanY = dragStartPan.current.y + totalDeltaY
+
+      // Store in ref for mouseUp
+      currentPanRef.current = { x: newPanX, y: newPanY }
+
+      // Apply directly to Cornerstone viewport (no store update yet)
+      try {
+        const viewport = cornerstone.getViewport(element)
+        if (viewport) {
+          viewport.translation = { x: newPanX, y: newPanY }
+          cornerstone.setViewport(element, viewport)
+
+          // Update local state for display only
+          setCurrentPan({ x: newPanX, y: newPanY })
+        }
+      } catch (err) {
+        console.error('Failed to update pan during drag:', err)
+      }
+    }
+
+    const handleMouseUp = () => {
+      if (isCurrentlyPanning) {
+        isCurrentlyPanning = false
+        setIsPanning(false)
+        // Now update the store with final values
+        setPan(currentPanRef.current.x, currentPanRef.current.y)
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (isCurrentlyPanning) {
+        isCurrentlyPanning = false
+        setIsPanning(false)
+        // Update store on mouse leave too
+        setPan(currentPanRef.current.x, currentPanRef.current.y)
+      }
+    }
+
+    element.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    element.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      element.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+      element.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [isInitialized, settings.pan.x, settings.pan.y, setPan])
+
   // Mouse wheel event handler for zoom
   useEffect(() => {
     const element = canvasRef.current
@@ -278,6 +390,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       // Get current zoom from store and calculate new zoom
       const currentZoomValue = settings.zoom
       const newZoom = Math.max(0.1, Math.min(20, currentZoomValue + zoomDelta))
+
+      // Track zoom direction for cursor
+      setIsZoomingIn(zoomDelta > 0)
 
       console.log('[Zoom] Wheel - current:', currentZoomValue.toFixed(2), 'delta:', zoomDelta.toFixed(2), '→ new:', newZoom.toFixed(2))
 
@@ -359,7 +474,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         className="w-full h-full"
         style={{
           minHeight: '400px',
-          cursor: isDragging ? 'grabbing' : 'grab'
+          cursor: showZoomIndicator ? (isZoomingIn ? 'zoom-in' : 'zoom-out') : isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair'
         }}
       />
 
@@ -374,10 +489,19 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       )}
 
       {/* Zoom indicator overlay */}
-      {showZoomIndicator && !isDragging && (
+      {showZoomIndicator && !isDragging && !isPanning && (
         <div className="absolute top-4 left-4 bg-black/80 text-white px-4 py-2 rounded shadow-lg">
           <div className="text-sm font-mono">
             <div>Zoom: {currentZoom.toFixed(1)}x</div>
+          </div>
+        </div>
+      )}
+
+      {/* Pan indicator overlay */}
+      {isPanning && (
+        <div className="absolute top-4 left-4 bg-black/80 text-white px-4 py-2 rounded shadow-lg">
+          <div className="text-sm font-mono">
+            <div>Panning</div>
           </div>
         </div>
       )}
