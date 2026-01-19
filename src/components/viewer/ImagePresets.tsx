@@ -44,17 +44,16 @@ export function ImagePresets() {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-400">Image Presets</h3>
       <div className="grid grid-cols-2 gap-2">
         {presets.map((preset) => (
           <button
             key={preset.name}
             onClick={() => setWindowLevel(preset.brightness, preset.contrast)}
-            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-xs text-left transition-colors"
+            className="px-3 py-2 bg-[#0f0f0f] hover:bg-[#1a1a1a] rounded text-xs text-left transition-colors border border-[#2a2a2a] hover:border-[#3a3a3a]"
             title={`${preset.description}\nContrast: ${preset.contrast}, Brightness: ${preset.brightness}`}
           >
-            <div className="font-medium text-white">{preset.name}</div>
-            <div className="text-[10px] text-gray-400">
+            <div className="font-medium text-gray-100">{preset.name}</div>
+            <div className="text-[10px] text-gray-500">
               C:{preset.contrast} B:{preset.brightness}
             </div>
           </button>
@@ -62,7 +61,7 @@ export function ImagePresets() {
       </div>
       <button
         onClick={() => setWindowLevel(40, 400)}
-        className="w-full px-3 py-2 bg-blue-700 hover:bg-blue-600 rounded text-xs font-medium transition-colors"
+        className="w-full px-3 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded text-xs font-medium transition-colors"
       >
         Reset to Default
       </button>

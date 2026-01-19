@@ -13,7 +13,7 @@ export function ThumbnailStrip() {
   }
 
   return (
-    <div className="bg-gray-800 border-t border-gray-700 p-3 w-full">
+    <div className="bg-[#0f0f0f] border-t border-[#2a2a2a] p-3 w-full">
       <div className="flex gap-2 overflow-x-auto pb-2 max-w-full">
         {currentSeries.instances.map((instance, index) => (
           <Thumbnail
@@ -86,8 +86,8 @@ function Thumbnail({ instance, index, isSelected, onClick }: ThumbnailProps) {
     <button
       onClick={onClick}
       className={`flex-shrink-0 relative group ${
-        isSelected ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-600'
-      } rounded overflow-hidden transition-all hover:ring-blue-400`}
+        isSelected ? 'ring-2 ring-[#4a4a4a]' : 'ring-1 ring-[#2a2a2a]'
+      } rounded overflow-hidden transition-all hover:ring-[#3a3a3a]`}
     >
       <div
         ref={canvasRef}
@@ -98,7 +98,7 @@ function Thumbnail({ instance, index, isSelected, onClick }: ThumbnailProps) {
         {index + 1}
       </div>
       {isSelected && (
-        <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
+        <div className="absolute inset-0 border-2 border-[#4a4a4a] pointer-events-none" />
       )}
     </button>
   )

@@ -121,8 +121,8 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
       className={cn(
         'relative border-2 border-dashed rounded-lg transition-colors',
         isDragging
-          ? 'border-blue-500 bg-blue-500/10'
-          : 'border-gray-600 hover:border-gray-500',
+          ? 'border-[#3a3a3a] bg-[#2a2a2a]/10'
+          : 'border-[#2a2a2a] hover:border-[#3a3a3a]',
         isLoading && 'opacity-50 pointer-events-none',
         className
       )}
@@ -147,7 +147,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
         </h3>
 
         {isLoading ? (
-          <p className="text-blue-400 mb-4 animate-pulse">
+          <p className="text-gray-300 mb-4 animate-pulse">
             Please wait, this may take a moment...
           </p>
         ) : (
@@ -157,7 +157,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
         )}
 
         <div className="flex gap-3">
-          <label className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
+          <label className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded-lg cursor-pointer transition-colors">
             Select Files
             <input
               type="file"
@@ -168,7 +168,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
             />
           </label>
 
-          <label className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg cursor-pointer transition-colors">
+          <label className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded-lg cursor-pointer transition-colors">
             Select Folder
             <input
               type="file"

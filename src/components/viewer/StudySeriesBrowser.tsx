@@ -65,11 +65,11 @@ interface StudyItemProps {
 
 function StudyItem({ study, isExpanded, onToggle, currentSeriesUID, onSeriesClick }: StudyItemProps) {
   return (
-    <div className="border border-gray-700 rounded bg-gray-800">
+    <div className="border border-[#2a2a2a] rounded bg-[#0f0f0f]/50">
       {/* Study Header */}
       <button
         onClick={onToggle}
-        className="w-full px-3 py-2 flex items-start gap-2 hover:bg-gray-700 transition-colors text-left"
+        className="w-full px-3 py-2 flex items-start gap-2 hover:bg-[#1a1a1a]/50 transition-colors text-left"
       >
         <span className="text-gray-400 mt-0.5 flex-shrink-0">
           {isExpanded ? '▼' : '▶'}
@@ -91,7 +91,7 @@ function StudyItem({ study, isExpanded, onToggle, currentSeriesUID, onSeriesClic
 
       {/* Series List */}
       {isExpanded && (
-        <div className="border-t border-gray-700">
+        <div className="border-t border-[#2a2a2a]">
           {study.series.map((series) => (
             <SeriesItem
               key={series.seriesInstanceUID}
@@ -116,8 +116,8 @@ function SeriesItem({ series, isSelected, onClick }: SeriesItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full px-3 py-2 pl-8 text-left hover:bg-gray-700 transition-colors ${
-        isSelected ? 'bg-blue-600 hover:bg-blue-700' : ''
+      className={`w-full px-3 py-2 pl-8 text-left hover:bg-[#1a1a1a]/50 transition-colors ${
+        isSelected ? 'bg-[#2a2a2a] hover:bg-[#3a3a3a]' : ''
       }`}
     >
       <div className="flex items-start gap-2">

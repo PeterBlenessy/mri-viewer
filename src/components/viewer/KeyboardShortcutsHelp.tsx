@@ -31,18 +31,18 @@ export function KeyboardShortcutsHelp({ show, onClose }: KeyboardShortcutsHelpPr
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
       onClick={onClose}
     >
       <div
-        className="bg-gray-800 rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto"
+        className="bg-[#1a1a1a] rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto border border-[#2a2a2a]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white">Keyboard Shortcuts</h2>
+          <h2 className="text-2xl font-bold text-gray-100">Keyboard Shortcuts</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl leading-none"
+            className="text-gray-400 hover:text-gray-100 text-2xl leading-none transition-colors"
           >
             ×
           </button>
@@ -62,7 +62,7 @@ export function KeyboardShortcutsHelp({ show, onClose }: KeyboardShortcutsHelpPr
                       {item.keys.map((key, keyIndex) => (
                         <kbd
                           key={keyIndex}
-                          className="px-2 py-1 bg-gray-700 text-white rounded text-sm font-mono border border-gray-600"
+                          className="px-2 py-1 bg-[#0f0f0f] text-gray-100 rounded text-sm font-mono border border-[#2a2a2a]"
                         >
                           {key}
                         </kbd>
