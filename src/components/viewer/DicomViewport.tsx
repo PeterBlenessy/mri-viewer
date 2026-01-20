@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStudyStore } from '@/stores/studyStore'
 import { useViewportStore } from '@/stores/viewportStore'
 import { initCornerstone, cornerstone } from '@/lib/cornerstone/initCornerstone'
+import { ViewportToolbar } from './ViewportToolbar'
 
 interface DicomViewportProps {
   className?: string
@@ -16,7 +17,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const [isPanning, setIsPanning] = useState(false)
   const [isModifierKeyPressed, setIsModifierKeyPressed] = useState(false)
   const [currentWL, setCurrentWL] = useState({ width: 0, center: 0 })
-  const [currentPan, setCurrentPan] = useState({ x: 0, y: 0 })
   const [showZoomIndicator, setShowZoomIndicator] = useState(false)
   const [currentZoom, setCurrentZoom] = useState(1)
   const [isZoomingIn, setIsZoomingIn] = useState(true)
@@ -25,7 +25,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const dragStartPan = useRef({ x: 0, y: 0 })
   const currentWLRef = useRef({ width: 0, center: 0 })
   const currentPanRef = useRef({ x: 0, y: 0 })
-  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const zoomTimeoutRef = useRef<number | null>(null)
   const fitScaleRef = useRef(1)
   const currentImageIdRef = useRef<string | null>(null)
 
@@ -157,8 +157,10 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         if (viewport) {
           // Use DICOM metadata window/level if available, otherwise use stored settings
           // This is crucial for different modalities (MR vs X-ray) which have very different ranges
-          const windowWidth = currentInstance.metadata.windowWidth || settings.windowWidth
-          const windowCenter = currentInstance.metadata.windowCenter || settings.windowCenter
+          const windowWidth = currentInstance?.metadata?.windowWidth || settings.windowWidth
+          const windowCenter = currentInstance?.metadata?.windowCenter || settings.windowCenter
+
+          console.log(`Applying W/L: center=${windowCenter}, width=${windowWidth}, modality=${currentInstance?.metadata?.modality}`)
 
 
           // Calculate scale to fit image in viewport
@@ -209,8 +211,12 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     try {
       const viewport = cornerstone.getViewport(element)
       if (viewport) {
-        viewport.voi.windowWidth = settings.windowWidth
-        viewport.voi.windowCenter = settings.windowCenter
+        // Use DICOM metadata window/level if available, otherwise use stored settings
+        const windowWidth = currentInstance?.metadata?.windowWidth || settings.windowWidth
+        const windowCenter = currentInstance?.metadata?.windowCenter || settings.windowCenter
+
+        viewport.voi.windowWidth = windowWidth
+        viewport.voi.windowCenter = windowCenter
         viewport.scale = fitScaleRef.current * settings.zoom
         viewport.translation = { x: settings.pan.x, y: settings.pan.y }
         viewport.rotation = settings.rotation
@@ -325,7 +331,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         // Store the starting pan values from current settings
         dragStartPan.current = { x: settings.pan.x, y: settings.pan.y }
         currentPanRef.current = { ...dragStartPan.current }
-        setCurrentPan(dragStartPan.current)
         e.preventDefault()
       }
     }
@@ -350,9 +355,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         if (viewport) {
           viewport.translation = { x: newPanX, y: newPanY }
           cornerstone.setViewport(element, viewport)
-
-          // Update local state for display only
-          setCurrentPan({ x: newPanX, y: newPanY })
         }
       } catch (err) {
         console.error('Failed to update pan during drag:', err)
@@ -492,6 +494,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           imageRendering: 'auto' // Use browser's default high-quality rendering for medical images
         }}
       />
+
+      {/* Viewport Toolbar */}
+      <ViewportToolbar className="absolute top-4 left-1/2 -translate-x-1/2" />
 
       {/* Window/Level indicator overlay */}
       {isDragging && (

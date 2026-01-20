@@ -1,6 +1,12 @@
 import { useCallback, useState } from 'react'
 import { useDicomLoader } from '@/hooks/useDicomLoader'
 import { cn } from '@/lib/utils'
+import {
+  readDicomFilesWithDirectories,
+} from '@/lib/storage/directoryHandleStorage'
+import { parseDicomFilesWithDirectories } from '@/lib/dicom/parser'
+import { useStudyStore } from '@/stores/studyStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 interface FileDropzoneProps {
   className?: string
@@ -9,7 +15,11 @@ interface FileDropzoneProps {
 
 export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [localLoading, setLocalLoading] = useState(false)
   const { loadFiles, isLoading, error } = useDicomLoader()
+  const setStudies = useStudyStore((state) => state.setStudies)
+  const persistStudies = useSettingsStore((state) => state.persistStudies)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -113,6 +123,72 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
     [loadFiles, onFilesLoaded]
   )
 
+  const handleDirectoryPicker = useCallback(async () => {
+    try {
+      // Check if File System Access API is supported
+      if (!('showDirectoryPicker' in window)) {
+        alert('Your browser does not support folder selection. Please use Chrome or Edge.')
+        return
+      }
+
+      setLocalLoading(true)
+      setLocalError(null)
+
+      // @ts-ignore - showDirectoryPicker is not in TypeScript types yet
+      const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({
+        mode: 'read',
+      })
+
+      // Read all DICOM files with directory tracking
+      const filesWithDirs = await readDicomFilesWithDirectories(directoryHandle)
+
+      if (filesWithDirs.length === 0) {
+        alert('No DICOM files found in the selected folder.')
+        setLocalLoading(false)
+        return
+      }
+
+      // Parse files with directory tracking
+      // Pass the root directory handle so all studies get the same root directory reference
+      const studies = await parseDicomFilesWithDirectories(filesWithDirs, directoryHandle)
+
+      if (studies.length === 0) {
+        alert('No valid DICOM studies found in the selected folder.')
+        setLocalLoading(false)
+        return
+      }
+
+      // If persistence is disabled, remove the directory handle IDs
+      if (!persistStudies) {
+        studies.forEach((study) => {
+          delete study.directoryHandleId
+        })
+      }
+
+      // Set the studies directly
+      setStudies(studies)
+
+      console.log(`Successfully loaded ${studies.length} studies`)
+
+      // Call onFilesLoaded (no handle ID needed - it's in the studies now)
+      onFilesLoaded?.()
+
+      setLocalLoading(false)
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        // User cancelled the picker
+        setLocalLoading(false)
+        return
+      }
+      console.error('Failed to load directory:', err)
+      setLocalError('Failed to load DICOM files from folder')
+      setLocalLoading(false)
+    }
+  }, [setStudies, onFilesLoaded, persistStudies])
+
+  const combinedLoading = isLoading || localLoading
+  const combinedError = error || localError
+
   return (
     <div
       onDragOver={handleDragOver}
@@ -123,7 +199,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
         isDragging
           ? 'border-[#3a3a3a] bg-[#2a2a2a]/10'
           : 'border-[#2a2a2a] hover:border-[#3a3a3a]',
-        isLoading && 'opacity-50 pointer-events-none',
+        combinedLoading && 'opacity-50 pointer-events-none',
         className
       )}
     >
@@ -143,10 +219,10 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
         </svg>
 
         <h3 className="text-xl font-semibold text-white mb-2">
-          {isLoading ? 'Loading and parsing DICOM files...' : 'Drop DICOM files here'}
+          {combinedLoading ? 'Loading and parsing DICOM files...' : 'Drop DICOM files here'}
         </h3>
 
-        {isLoading ? (
+        {combinedLoading ? (
           <p className="text-gray-300 mb-4 animate-pulse">
             Please wait, this may take a moment...
           </p>
@@ -164,32 +240,27 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
               multiple
               onChange={handleFileSelect}
               className="hidden"
-              disabled={isLoading}
+              disabled={combinedLoading}
             />
           </label>
 
-          <label className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded-lg cursor-pointer transition-colors">
+          <button
+            onClick={handleDirectoryPicker}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={combinedLoading}
+          >
             Select Folder
-            <input
-              type="file"
-              // @ts-ignore - webkitdirectory is not in the official types
-              webkitdirectory=""
-              directory=""
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={isLoading}
-            />
-          </label>
+          </button>
         </div>
 
         <p className="text-sm text-gray-500 mt-4">
           Supports DICOM files (with or without .dcm extension)
         </p>
 
-        {error && (
+        {combinedError && (
           <div className="mt-4 p-3 bg-red-900/50 border border-red-500 rounded text-red-200 text-sm">
             <p className="font-semibold">Error</p>
-            <p>{error}</p>
+            <p>{combinedError}</p>
           </div>
         )}
       </div>

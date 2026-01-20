@@ -6,6 +6,7 @@ export interface DicomStudy {
   patientName: string
   patientID: string
   series: DicomSeries[]
+  directoryHandleId?: string // Reference to directory handle for this specific study
 }
 
 export interface DicomSeries {

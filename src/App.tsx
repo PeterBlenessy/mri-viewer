@@ -1,22 +1,30 @@
 import { useState, useEffect } from 'react'
-import { Disclosure } from '@headlessui/react'
 import { FileDropzone } from './components/viewer/FileDropzone'
 import { DicomViewport } from './components/viewer/DicomViewport'
 import { StudySeriesBrowser } from './components/viewer/StudySeriesBrowser'
 import { ThumbnailStrip } from './components/viewer/ThumbnailStrip'
 import { KeyboardShortcutsHelp } from './components/viewer/KeyboardShortcutsHelp'
 import { ImagePresets } from './components/viewer/ImagePresets'
+import { LeftDrawer } from './components/layout/LeftDrawer'
+import { SettingsPanel } from './components/settings/SettingsPanel'
 import { useStudyStore } from './stores/studyStore'
+import { useRecentStudiesStore } from './stores/recentStudiesStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function App() {
   // Force HMR update
   const [showDropzone, setShowDropzone] = useState(true)
   const [showHelp, setShowHelp] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [hasProcessedStudies, setHasProcessedStudies] = useState(false)
+  const theme = useSettingsStore((state) => state.theme)
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const currentSeries = useStudyStore((state) => state.currentSeries)
+  const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
-  const { nextInstance, previousInstance } = useStudyStore()
+  const studies = useStudyStore((state) => state.studies)
+  const addRecentStudy = useRecentStudiesStore((state) => state.addRecentStudy)
 
   // Collapsible section state with localStorage persistence
   const [sectionState, setSectionState] = useState(() => {
@@ -46,21 +54,64 @@ function App() {
   useKeyboardShortcuts({ onToggleHelp: () => setShowHelp(!showHelp) })
 
   const handleFilesLoaded = () => {
+    setHasProcessedStudies(false) // Reset so we process the new studies
     setShowDropzone(false)
   }
 
-  return (
-    <div className="h-screen bg-black text-white flex flex-col">
-      {/* Keyboard Shortcuts Help */}
+  // Auto-hide dropzone when studies are loaded (e.g., from recent studies reload)
+  useEffect(() => {
+    if (currentStudy) {
+      setShowDropzone(false)
+    }
+  }, [currentStudy])
 
+  // Track ALL studies in recent history when they're loaded
+  useEffect(() => {
+    // Only process studies once per load, and only if we have studies
+    if (studies.length > 0 && !hasProcessedStudies) {
+      // Add ALL studies to recent history with their own directoryHandleId
+      studies.forEach((study) => {
+        const imageCount = study.series.reduce(
+          (total, series) => total + series.instances.length,
+          0
+        )
+        addRecentStudy({
+          studyInstanceUID: study.studyInstanceUID,
+          patientName: study.patientName || 'Unknown',
+          patientID: study.patientID || '',
+          studyDate: study.studyDate || '',
+          studyDescription: study.studyDescription || '',
+          seriesCount: study.series.length,
+          imageCount,
+          directoryHandleId: study.directoryHandleId, // Use the study's own directory handle
+        })
+      })
+
+      // Mark as processed so we don't add them again
+      setHasProcessedStudies(true)
+    }
+  }, [studies, hasProcessedStudies, addRecentStudy])
+
+  return (
+    <div className={`h-screen flex flex-col ${theme === 'dark' ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
+      {/* Left Drawer */}
+      <LeftDrawer
+        onLoadNewFiles={() => setShowDropzone(true)}
+        onOpenSettings={() => setShowSettings(true)}
+      />
+
+      {/* Settings Panel */}
+      <SettingsPanel show={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp show={showHelp} onClose={() => setShowHelp(false)} />
 
       {/* Header */}
-      <header className="bg-[#1a1a1a] border-b border-[#2a2a2a] px-6 py-4 flex items-center justify-between">
+      <header className={`px-6 py-4 flex items-center justify-between border-b ${theme === 'dark' ? 'bg-[#1a1a1a] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
         <div>
           <h1 className="text-2xl font-bold">MR DICOM Viewer</h1>
           {currentSeries && (
-            <p className="text-sm text-gray-400 mt-1">
+            <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               {currentSeries.seriesDescription || `Series ${currentSeries.seriesNumber}`} -
               Image {currentInstanceIndex + 1} of {currentSeries.instances.length}
             </p>
@@ -68,7 +119,7 @@ function App() {
         </div>
         <button
           onClick={() => setShowHelp(true)}
-          className="px-3 py-2 bg-[#0f0f0f] hover:bg-[#1a1a1a] rounded text-sm flex items-center gap-2 transition-colors"
+          className={`px-3 py-2 rounded text-sm flex items-center gap-2 transition-colors ${theme === 'dark' ? 'bg-[#0f0f0f] hover:bg-[#1a1a1a]' : 'bg-gray-100 hover:bg-gray-200'}`}
           title="Keyboard shortcuts"
         >
           <span>?</span>
@@ -93,9 +144,9 @@ function App() {
 
               {/* Image Slider */}
               {currentSeries && currentSeries.instances.length > 1 && (
-                <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-6 py-3">
+                <div className={`px-6 py-3 border-t ${theme === 'dark' ? 'bg-[#1a1a1a] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-400 min-w-fit">
+                    <span className={`text-sm min-w-fit ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                       {currentInstanceIndex + 1} / {currentSeries.instances.length}
                     </span>
                     <input
@@ -107,9 +158,11 @@ function App() {
                         const newIndex = parseInt(e.target.value)
                         useStudyStore.getState().setCurrentInstance(newIndex)
                       }}
-                      className="flex-1 h-2 bg-[#0f0f0f] rounded-lg appearance-none cursor-pointer slider"
+                      className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer slider ${theme === 'dark' ? 'bg-[#0f0f0f]' : 'bg-gray-200'}`}
                       style={{
-                        background: `linear-gradient(to right, #4a4a4a 0%, #4a4a4a ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f 100%)`
+                        background: theme === 'dark'
+                          ? `linear-gradient(to right, #4a4a4a 0%, #4a4a4a ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f 100%)`
+                          : `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #e5e7eb ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #e5e7eb 100%)`
                       }}
                     />
                   </div>
@@ -121,15 +174,15 @@ function App() {
             </div>
 
             {/* Sidebar */}
-            <aside className="w-80 bg-[#1a1a1a] border-l border-[#2a2a2a] flex flex-col overflow-hidden">
+            <aside className={`w-80 flex flex-col overflow-hidden border-l ${theme === 'dark' ? 'bg-[#1a1a1a] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
               {/* Study/Series Browser - Collapsible, Persistent */}
-              <div className="border-b border-[#2a2a2a]">
+              <div className={`border-b ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
                 <button
-                  onClick={() => setSectionState(prev => ({ ...prev, studiesOpen: !prev.studiesOpen }))}
-                  className="w-full p-4 flex items-center justify-between hover:bg-[#0f0f0f] transition-colors"
+                  onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, studiesOpen: !prev.studiesOpen }))}
+                  className={`w-full p-4 flex items-center justify-between transition-colors ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
                 >
                   <h2 className="text-lg font-semibold">Studies & Series</h2>
-                  <span className="text-gray-400">{sectionState.studiesOpen ? '▼' : '▶'}</span>
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.studiesOpen ? '▼' : '▶'}</span>
                 </button>
                 {sectionState.studiesOpen && (
                   <div className="px-4 pb-4">
@@ -141,13 +194,13 @@ function App() {
               </div>
 
               {/* Image Presets - Collapsible, Persistent */}
-              <div className="border-b border-[#2a2a2a]">
+              <div className={`border-b ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
                 <button
-                  onClick={() => setSectionState(prev => ({ ...prev, presetsOpen: !prev.presetsOpen }))}
-                  className="w-full p-4 flex items-center justify-between hover:bg-[#0f0f0f] transition-colors"
+                  onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, presetsOpen: !prev.presetsOpen }))}
+                  className={`w-full p-4 flex items-center justify-between transition-colors ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
                 >
                   <h2 className="text-lg font-semibold">Image Presets</h2>
-                  <span className="text-gray-400">{sectionState.presetsOpen ? '▼' : '▶'}</span>
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.presetsOpen ? '▼' : '▶'}</span>
                 </button>
                 {sectionState.presetsOpen && (
                   <div className="px-4 pb-4">
@@ -159,43 +212,43 @@ function App() {
               {/* Current Metadata - Collapsible, Persistent */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <button
-                  onClick={() => setSectionState(prev => ({ ...prev, metadataOpen: !prev.metadataOpen }))}
-                  className="w-full p-4 flex items-center justify-between hover:bg-[#0f0f0f] transition-colors flex-shrink-0"
+                  onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, metadataOpen: !prev.metadataOpen }))}
+                  className={`w-full p-4 flex items-center justify-between transition-colors flex-shrink-0 ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
                 >
                   <h2 className="text-lg font-semibold">Current Image</h2>
-                  <span className="text-gray-400">{sectionState.metadataOpen ? '▼' : '▶'}</span>
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.metadataOpen ? '▼' : '▶'}</span>
                 </button>
                 {sectionState.metadataOpen && (
                   <div className="px-4 pb-4 flex-1 overflow-y-auto">
                     {currentInstance?.metadata && (
                       <div className="space-y-2 text-sm">
                         <div>
-                          <span className="text-gray-400">Patient Name:</span>
-                          <p className="text-white">{currentInstance.metadata.patientName}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Patient Name:</span>
+                          <p>{currentInstance.metadata.patientName}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Patient ID:</span>
-                          <p className="text-white">{currentInstance.metadata.patientID}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Patient ID:</span>
+                          <p>{currentInstance.metadata.patientID}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Study Date:</span>
-                          <p className="text-white">{currentInstance.metadata.studyDate}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Study Date:</span>
+                          <p>{currentInstance.metadata.studyDate}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Series:</span>
-                          <p className="text-white">{currentInstance.metadata.seriesDescription}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Series:</span>
+                          <p>{currentInstance.metadata.seriesDescription}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Instance:</span>
-                          <p className="text-white">{currentInstance.instanceNumber}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Instance:</span>
+                          <p>{currentInstance.instanceNumber}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Brightness:</span>
-                          <p className="text-white">{currentInstance.metadata.windowCenter}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Brightness:</span>
+                          <p>{currentInstance.metadata.windowCenter}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Contrast:</span>
-                          <p className="text-white">{currentInstance.metadata.windowWidth}</p>
+                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Contrast:</span>
+                          <p>{currentInstance.metadata.windowWidth}</p>
                         </div>
                       </div>
                     )}
@@ -204,10 +257,10 @@ function App() {
               </div>
 
               {/* Load New Files Button */}
-              <div className="p-4 border-t border-[#2a2a2a] flex-shrink-0">
+              <div className={`p-4 border-t flex-shrink-0 ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
                 <button
                   onClick={() => setShowDropzone(true)}
-                  className="w-full px-4 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded transition-colors"
+                  className={`w-full px-4 py-2 rounded transition-colors ${theme === 'dark' ? 'bg-[#2a2a2a] hover:bg-[#3a3a3a]' : 'bg-gray-100 hover:bg-gray-200'}`}
                 >
                   Load New Files
                 </button>
