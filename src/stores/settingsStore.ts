@@ -15,12 +15,16 @@ export interface SettingsState {
   // Display
   showMetadataOverlay: boolean
 
+  // Data persistence
+  persistStudies: boolean // Whether to persist studies across sessions
+
   // Actions
   setTheme: (theme: Theme) => void
   setScrollDirection: (direction: ScrollDirection) => void
   setWindowLevelSensitivity: (sensitivity: number) => void
   setZoomSensitivity: (sensitivity: number) => void
   setShowMetadataOverlay: (show: boolean) => void
+  setPersistStudies: (persist: boolean) => void
   resetToDefaults: () => void
 }
 
@@ -32,6 +36,7 @@ const defaultSettings = {
   windowLevelSensitivity: 1.5,
   zoomSensitivity: 0.05,
   showMetadataOverlay: false,
+  persistStudies: true,
 }
 
 function loadSettings(): Partial<typeof defaultSettings> {
@@ -98,6 +103,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setShowMetadataOverlay: (showMetadataOverlay) => {
       set({ showMetadataOverlay })
       saveSettings({ ...get(), showMetadataOverlay })
+    },
+
+    setPersistStudies: (persistStudies) => {
+      set({ persistStudies })
+      saveSettings({ ...get(), persistStudies })
     },
 
     resetToDefaults: () => {

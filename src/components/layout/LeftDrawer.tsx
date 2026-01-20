@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import { useRecentStudiesStore, RecentStudyEntry } from '@/stores/recentStudiesStore'
 import { useStudyStore } from '@/stores/studyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import {
+  getDirectoryHandle,
+  checkDirectoryPermission,
+  requestDirectoryPermission,
+  readDicomFilesWithDirectories,
+} from '@/lib/storage/directoryHandleStorage'
+import { parseDicomFilesWithDirectories } from '@/lib/dicom/parser'
 
 interface LeftDrawerProps {
   onLoadNewFiles: () => void
@@ -18,21 +25,90 @@ export function LeftDrawer({ onLoadNewFiles, onOpenSettings }: LeftDrawerProps) 
   const clearRecentStudies = useRecentStudiesStore((state) => state.clearRecentStudies)
   const currentStudy = useStudyStore((state) => state.currentStudy)
   const setCurrentStudy = useStudyStore((state) => state.setCurrentStudy)
+  const setStudies = useStudyStore((state) => state.setStudies)
   const studies = useStudyStore((state) => state.studies)
 
   const theme = useSettingsStore((state) => state.theme)
   const setTheme = useSettingsStore((state) => state.setTheme)
+
+  const [isLoading, setIsLoading] = useState(false)
 
   // Save open state to localStorage
   useEffect(() => {
     localStorage.setItem('leftDrawerOpen', JSON.stringify(isOpen))
   }, [isOpen])
 
-  const handleStudyClick = (entry: RecentStudyEntry) => {
+  const handleStudyClick = async (entry: RecentStudyEntry) => {
     // Check if this study is still loaded
     const study = studies.find((s) => s.studyInstanceUID === entry.studyInstanceUID)
     if (study) {
       setCurrentStudy(study.studyInstanceUID)
+      return
+    }
+
+    // If study is not loaded but has a directory handle, try to reload it
+    if (entry.directoryHandleId) {
+      try {
+        setIsLoading(true)
+
+        // Get the directory handle from IndexedDB
+        const dirHandle = await getDirectoryHandle(entry.directoryHandleId)
+        if (!dirHandle) {
+          alert('Could not find the directory reference. The folder may have been moved or deleted.')
+          return
+        }
+
+        // Check if we have permission
+        let hasPermission = await checkDirectoryPermission(dirHandle)
+
+        // If not, request permission
+        if (!hasPermission) {
+          hasPermission = await requestDirectoryPermission(dirHandle)
+          if (!hasPermission) {
+            alert('Permission denied to access the folder.')
+            return
+          }
+        }
+
+        // Read DICOM files with directory tracking
+        const filesWithDirs = await readDicomFilesWithDirectories(dirHandle)
+        if (filesWithDirs.length === 0) {
+          alert('No DICOM files found in the folder.')
+          return
+        }
+
+        // Parse and load the files with directory tracking
+        // Pass the root directory handle so all studies get the correct parent directory reference
+        const loadedStudies = await parseDicomFilesWithDirectories(filesWithDirs, dirHandle)
+        if (loadedStudies.length === 0) {
+          alert('No valid DICOM studies found in the folder.')
+          return
+        }
+
+        console.log(`[LeftDrawer] Loaded ${loadedStudies.length} studies from directory`)
+        loadedStudies.forEach((study, idx) => {
+          console.log(`[LeftDrawer] Study ${idx + 1}: ${study.patientName}, ${study.series.length} series, ${study.series.reduce((sum, s) => sum + s.instances.length, 0)} images`)
+        })
+
+        // Set ALL the studies from this directory
+        setStudies(loadedStudies)
+
+        // Find and set the current study to the one the user clicked
+        const targetStudy = loadedStudies.find((s) => s.studyInstanceUID === entry.studyInstanceUID)
+        if (targetStudy) {
+          console.log(`[LeftDrawer] Found target study: ${targetStudy.patientName}, ${targetStudy.series.length} series`)
+          setCurrentStudy(targetStudy.studyInstanceUID)
+        } else {
+          console.log(`[LeftDrawer] Target study not found, using first study`)
+          // If the exact study isn't found, just set the first one
+          setCurrentStudy(loadedStudies[0].studyInstanceUID)
+        }
+      } catch (error) {
+        console.error('Failed to reload study:', error)
+        alert('Failed to reload the study. Please try loading the files again.')
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -78,6 +154,9 @@ export function LeftDrawer({ onLoadNewFiles, onOpenSettings }: LeftDrawerProps) 
               <path fillRule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
             </svg>
             Menu
+            {isLoading && (
+              <span className="text-xs text-blue-500 animate-pulse">Loading...</span>
+            )}
           </h2>
         </div>
 
@@ -106,16 +185,18 @@ export function LeftDrawer({ onLoadNewFiles, onOpenSettings }: LeftDrawerProps) 
                 {recentStudies.map((entry) => {
                   const isActive = currentStudy?.studyInstanceUID === entry.studyInstanceUID
                   const isLoaded = studies.some((s) => s.studyInstanceUID === entry.studyInstanceUID)
+                  const canReload = !!entry.directoryHandleId
+                  const isClickable = isLoaded || canReload
 
                   return (
                     <li key={entry.id}>
                       <button
                         onClick={() => handleStudyClick(entry)}
-                        disabled={!isLoaded}
+                        disabled={!isClickable || isLoading}
                         className={`w-full text-left p-3 rounded-lg transition-colors ${
                           isActive
                             ? 'bg-blue-600/20 border border-blue-500/50'
-                            : isLoaded
+                            : isClickable
                             ? theme === 'dark'
                               ? 'bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-transparent'
                               : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
@@ -140,8 +221,11 @@ export function LeftDrawer({ onLoadNewFiles, onOpenSettings }: LeftDrawerProps) 
                             <span className="text-xs text-gray-500">
                               {formatDate(entry.loadedAt)}
                             </span>
-                            {!isLoaded && (
-                              <span className="text-xs text-yellow-500">Unloaded</span>
+                            {!isLoaded && canReload && (
+                              <span className="text-xs text-blue-500">Click to reload</span>
+                            )}
+                            {!isLoaded && !canReload && (
+                              <span className="text-xs text-yellow-500">Unavailable</span>
                             )}
                           </div>
                         </div>
@@ -181,7 +265,7 @@ export function LeftDrawer({ onLoadNewFiles, onOpenSettings }: LeftDrawerProps) 
                 <path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-500">
                 <path fillRule="evenodd" d="M7.455 2.004a.75.75 0 01.26.77 7 7 0 009.958 7.967.75.75 0 011.067.853A8.5 8.5 0 116.647 1.921a.75.75 0 01.808.083z" clipRule="evenodd" />
               </svg>
             )}

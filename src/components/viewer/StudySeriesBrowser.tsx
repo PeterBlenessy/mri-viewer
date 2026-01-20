@@ -4,16 +4,19 @@ import { DicomStudy, DicomSeries } from '@/types'
 
 export function StudySeriesBrowser() {
   const studies = useStudyStore((state) => state.studies)
+  const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentSeries = useStudyStore((state) => state.currentSeries)
   const setCurrentSeries = useStudyStore((state) => state.setCurrentSeries)
 
-  // Track which studies are expanded (all expanded by default)
+  // Track which studies are expanded (only current study expanded by default)
   const [expandedStudies, setExpandedStudies] = useState<Set<string>>(new Set())
 
-  // Auto-expand all studies when they're loaded
+  // Auto-expand only the current study when it changes
   useEffect(() => {
-    setExpandedStudies(new Set(studies.map(s => s.studyInstanceUID)))
-  }, [studies])
+    if (currentStudy) {
+      setExpandedStudies(new Set([currentStudy.studyInstanceUID]))
+    }
+  }, [currentStudy])
 
   const toggleStudy = (studyUID: string) => {
     setExpandedStudies(prev => {
@@ -64,6 +67,8 @@ interface StudyItemProps {
 }
 
 function StudyItem({ study, isExpanded, onToggle, currentSeriesUID, onSeriesClick }: StudyItemProps) {
+  console.log(`StudyItem rendering: ${study.patientName}, series count: ${study.series.length}`, study.series)
+
   return (
     <div className="border border-[#2a2a2a] rounded bg-[#0f0f0f]/50">
       {/* Study Header */}

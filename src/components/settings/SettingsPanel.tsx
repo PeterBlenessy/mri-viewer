@@ -11,12 +11,14 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
   const windowLevelSensitivity = useSettingsStore((state) => state.windowLevelSensitivity)
   const zoomSensitivity = useSettingsStore((state) => state.zoomSensitivity)
   const showMetadataOverlay = useSettingsStore((state) => state.showMetadataOverlay)
+  const persistStudies = useSettingsStore((state) => state.persistStudies)
 
   const setTheme = useSettingsStore((state) => state.setTheme)
   const setScrollDirection = useSettingsStore((state) => state.setScrollDirection)
   const setWindowLevelSensitivity = useSettingsStore((state) => state.setWindowLevelSensitivity)
   const setZoomSensitivity = useSettingsStore((state) => state.setZoomSensitivity)
   const setShowMetadataOverlay = useSettingsStore((state) => state.setShowMetadataOverlay)
+  const setPersistStudies = useSettingsStore((state) => state.setPersistStudies)
   const resetToDefaults = useSettingsStore((state) => state.resetToDefaults)
 
   if (!show) return null
@@ -106,6 +108,17 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
               <ToggleSwitch
                 checked={showMetadataOverlay}
                 onChange={setShowMetadataOverlay}
+                isDark={isDark}
+              />
+            </SettingsRow>
+          </SettingsSection>
+
+          {/* Data Section */}
+          <SettingsSection title="Data" isDark={isDark}>
+            <SettingsRow label="Persist Studies" description="Remember recently opened studies and reload them after refresh" isDark={isDark}>
+              <ToggleSwitch
+                checked={persistStudies}
+                onChange={setPersistStudies}
                 isDark={isDark}
               />
             </SettingsRow>

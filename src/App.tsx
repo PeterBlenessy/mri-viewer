@@ -17,11 +17,13 @@ function App() {
   const [showDropzone, setShowDropzone] = useState(true)
   const [showHelp, setShowHelp] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [hasProcessedStudies, setHasProcessedStudies] = useState(false)
   const theme = useSettingsStore((state) => state.theme)
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const currentSeries = useStudyStore((state) => state.currentSeries)
   const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
+  const studies = useStudyStore((state) => state.studies)
   const addRecentStudy = useRecentStudiesStore((state) => state.addRecentStudy)
 
   // Collapsible section state with localStorage persistence
@@ -52,27 +54,43 @@ function App() {
   useKeyboardShortcuts({ onToggleHelp: () => setShowHelp(!showHelp) })
 
   const handleFilesLoaded = () => {
+    setHasProcessedStudies(false) // Reset so we process the new studies
     setShowDropzone(false)
   }
 
-  // Track studies in recent history when they're loaded
+  // Auto-hide dropzone when studies are loaded (e.g., from recent studies reload)
   useEffect(() => {
     if (currentStudy) {
-      const imageCount = currentStudy.series.reduce(
-        (total, series) => total + series.instances.length,
-        0
-      )
-      addRecentStudy({
-        studyInstanceUID: currentStudy.studyInstanceUID,
-        patientName: currentStudy.patientName || 'Unknown',
-        patientID: currentStudy.patientID || '',
-        studyDate: currentStudy.studyDate || '',
-        studyDescription: currentStudy.studyDescription || '',
-        seriesCount: currentStudy.series.length,
-        imageCount,
-      })
+      setShowDropzone(false)
     }
-  }, [currentStudy?.studyInstanceUID])
+  }, [currentStudy])
+
+  // Track ALL studies in recent history when they're loaded
+  useEffect(() => {
+    // Only process studies once per load, and only if we have studies
+    if (studies.length > 0 && !hasProcessedStudies) {
+      // Add ALL studies to recent history with their own directoryHandleId
+      studies.forEach((study) => {
+        const imageCount = study.series.reduce(
+          (total, series) => total + series.instances.length,
+          0
+        )
+        addRecentStudy({
+          studyInstanceUID: study.studyInstanceUID,
+          patientName: study.patientName || 'Unknown',
+          patientID: study.patientID || '',
+          studyDate: study.studyDate || '',
+          studyDescription: study.studyDescription || '',
+          seriesCount: study.series.length,
+          imageCount,
+          directoryHandleId: study.directoryHandleId, // Use the study's own directory handle
+        })
+      })
+
+      // Mark as processed so we don't add them again
+      setHasProcessedStudies(true)
+    }
+  }, [studies, hasProcessedStudies, addRecentStudy])
 
   return (
     <div className={`h-screen flex flex-col ${theme === 'dark' ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
