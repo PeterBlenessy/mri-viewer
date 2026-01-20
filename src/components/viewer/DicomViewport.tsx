@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStudyStore } from '@/stores/studyStore'
 import { useViewportStore } from '@/stores/viewportStore'
 import { initCornerstone, cornerstone } from '@/lib/cornerstone/initCornerstone'
+import { ViewportToolbar } from './ViewportToolbar'
 
 interface DicomViewportProps {
   className?: string
@@ -492,6 +493,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           imageRendering: 'auto' // Use browser's default high-quality rendering for medical images
         }}
       />
+
+      {/* Viewport Toolbar */}
+      <ViewportToolbar className="absolute top-4 left-1/2 -translate-x-1/2" />
 
       {/* Window/Level indicator overlay */}
       {isDragging && (

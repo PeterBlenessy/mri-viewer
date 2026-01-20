@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Disclosure } from '@headlessui/react'
 import { FileDropzone } from './components/viewer/FileDropzone'
 import { DicomViewport } from './components/viewer/DicomViewport'
 import { StudySeriesBrowser } from './components/viewer/StudySeriesBrowser'
 import { ThumbnailStrip } from './components/viewer/ThumbnailStrip'
 import { KeyboardShortcutsHelp } from './components/viewer/KeyboardShortcutsHelp'
 import { ImagePresets } from './components/viewer/ImagePresets'
+import { LeftDrawer } from './components/layout/LeftDrawer'
 import { useStudyStore } from './stores/studyStore'
+import { useRecentStudiesStore } from './stores/recentStudiesStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function App() {
@@ -15,8 +16,9 @@ function App() {
   const [showHelp, setShowHelp] = useState(false)
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const currentSeries = useStudyStore((state) => state.currentSeries)
+  const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
-  const { nextInstance, previousInstance } = useStudyStore()
+  const addRecentStudy = useRecentStudiesStore((state) => state.addRecentStudy)
 
   // Collapsible section state with localStorage persistence
   const [sectionState, setSectionState] = useState(() => {
@@ -49,10 +51,31 @@ function App() {
     setShowDropzone(false)
   }
 
+  // Track studies in recent history when they're loaded
+  useEffect(() => {
+    if (currentStudy) {
+      const imageCount = currentStudy.series.reduce(
+        (total, series) => total + series.instances.length,
+        0
+      )
+      addRecentStudy({
+        studyInstanceUID: currentStudy.studyInstanceUID,
+        patientName: currentStudy.patientName || 'Unknown',
+        patientID: currentStudy.patientID || '',
+        studyDate: currentStudy.studyDate || '',
+        studyDescription: currentStudy.studyDescription || '',
+        seriesCount: currentStudy.series.length,
+        imageCount,
+      })
+    }
+  }, [currentStudy?.studyInstanceUID])
+
   return (
     <div className="h-screen bg-black text-white flex flex-col">
-      {/* Keyboard Shortcuts Help */}
+      {/* Left Drawer */}
+      <LeftDrawer onLoadNewFiles={() => setShowDropzone(true)} />
 
+      {/* Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp show={showHelp} onClose={() => setShowHelp(false)} />
 
       {/* Header */}
