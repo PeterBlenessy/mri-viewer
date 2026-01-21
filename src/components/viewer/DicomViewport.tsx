@@ -17,17 +17,15 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const [isPanning, setIsPanning] = useState(false)
   const [isModifierKeyPressed, setIsModifierKeyPressed] = useState(false)
   const [currentWL, setCurrentWL] = useState({ width: 0, center: 0 })
-  const [showZoomIndicator, setShowZoomIndicator] = useState(false)
-  const [currentZoom, setCurrentZoom] = useState(1)
-  const [isZoomingIn, setIsZoomingIn] = useState(true)
+  const [isActivelyZooming, setIsActivelyZooming] = useState(false)
   const dragStartPos = useRef({ x: 0, y: 0 })
   const dragStartWL = useRef({ width: 0, center: 0 })
   const dragStartPan = useRef({ x: 0, y: 0 })
   const currentWLRef = useRef({ width: 0, center: 0 })
   const currentPanRef = useRef({ x: 0, y: 0 })
-  const zoomTimeoutRef = useRef<number | null>(null)
   const fitScaleRef = useRef(1)
   const currentImageIdRef = useRef<string | null>(null)
+  const zoomTimeoutRef = useRef<number | null>(null)
 
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const settings = useViewportStore((state) => state.settings)
@@ -407,9 +405,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       const currentZoomValue = settings.zoom
       const newZoom = Math.max(0.1, Math.min(20, currentZoomValue + zoomDelta))
 
-      // Track zoom direction for cursor
-      setIsZoomingIn(zoomDelta > 0)
-
       console.log('[Zoom] Wheel - current:', currentZoomValue.toFixed(2), 'delta:', zoomDelta.toFixed(2), '→ new:', newZoom.toFixed(2))
 
       // Apply zoom directly to viewport
@@ -419,22 +414,21 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           viewport.scale = fitScaleRef.current * newZoom
           cornerstone.setViewport(element, viewport)
 
-          // Update local state for display
-          setCurrentZoom(newZoom)
-          setShowZoomIndicator(true)
+          // Update store with new zoom value
+          setZoom(newZoom)
+
+          // Show prominent zoom indicator
+          setIsActivelyZooming(true)
 
           // Clear existing timeout
           if (zoomTimeoutRef.current) {
             clearTimeout(zoomTimeoutRef.current)
           }
 
-          // Hide zoom indicator after 1 second
+          // Fade to subtle after 1.5 seconds
           zoomTimeoutRef.current = setTimeout(() => {
-            setShowZoomIndicator(false)
-          }, 1000)
-
-          // Update store with new zoom value
-          setZoom(newZoom)
+            setIsActivelyZooming(false)
+          }, 1500)
         }
       } catch (err) {
         console.error('Failed to update zoom:', err)
@@ -450,6 +444,25 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       }
     }
   }, [isInitialized, settings.zoom, setZoom])
+
+  // Watch for zoom changes from toolbar or other sources
+  const prevZoomRef = useRef(settings.zoom)
+  useEffect(() => {
+    // Only trigger if zoom actually changed (not initial render)
+    if (prevZoomRef.current !== settings.zoom && prevZoomRef.current !== 1) {
+      setIsActivelyZooming(true)
+
+      if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current)
+      }
+
+      zoomTimeoutRef.current = setTimeout(() => {
+        setIsActivelyZooming(false)
+      }, 1500)
+    }
+
+    prevZoomRef.current = settings.zoom
+  }, [settings.zoom])
 
   if (error) {
     return (
@@ -490,7 +503,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         className="w-full h-full bg-black"
         style={{
           minHeight: '400px',
-          cursor: showZoomIndicator ? (isZoomingIn ? 'zoom-in' : 'zoom-out') : isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair',
+          cursor: isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair',
           imageRendering: 'auto' // Use browser's default high-quality rendering for medical images
         }}
       />
@@ -508,14 +521,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         </div>
       )}
 
-      {/* Zoom indicator overlay */}
-      {showZoomIndicator && !isDragging && !isPanning && (
-        <div className="absolute top-4 left-4 bg-black/80 text-white px-4 py-2 rounded shadow-lg">
-          <div className="text-sm font-mono">
-            <div>Zoom: {currentZoom.toFixed(1)}x</div>
-          </div>
-        </div>
-      )}
 
       {/* Pan indicator overlay */}
       {isPanning && (
@@ -525,6 +530,38 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           </div>
         </div>
       )}
+
+      {/* Zoom level indicator - bottom-left corner */}
+      <div
+        className={`absolute bottom-4 left-4 transition-all duration-300 ${
+          isActivelyZooming
+            ? 'bg-black/90 px-4 py-2.5 rounded-lg shadow-xl scale-110'
+            : 'bg-black/60 px-3 py-1.5 rounded shadow-md'
+        }`}
+      >
+        <div className="flex items-baseline gap-1.5">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className={`transition-all duration-300 ${
+              isActivelyZooming ? 'w-4 h-4 text-blue-400' : 'w-3 h-3 text-gray-500'
+            }`}
+          >
+            <path d="M9 6a.75.75 0 01.75.75v1.5h1.5a.75.75 0 010 1.5h-1.5v1.5a.75.75 0 01-1.5 0v-1.5h-1.5a.75.75 0 010-1.5h1.5v-1.5A.75.75 0 019 6z" />
+            <path fillRule="evenodd" d="M2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9zm7-5.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" clipRule="evenodd" />
+          </svg>
+          <span
+            className={`font-mono font-medium transition-all duration-300 ${
+              isActivelyZooming
+                ? 'text-base text-white'
+                : 'text-xs text-gray-400'
+            }`}
+          >
+            {settings.zoom.toFixed(1)}x
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
