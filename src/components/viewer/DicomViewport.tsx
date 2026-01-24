@@ -537,7 +537,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         ref={canvasRef}
         className="w-full h-full bg-black"
         style={{
-          minHeight: '400px',
           cursor: isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair',
           imageRendering: 'crisp-edges' // Pixel-perfect rendering for medical images - no interpolation
         }}
