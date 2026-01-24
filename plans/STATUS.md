@@ -1,6 +1,6 @@
 # MR DICOM Viewer - Implementation Status
 
-**Last Updated**: January 20, 2026
+**Last Updated**: January 24, 2026
 **Current Phase**: Phase 1 Nearly Complete (95%+)
 
 ---
@@ -100,18 +100,20 @@
 - [x] **Mouse Cursor Indicators** - Visual feedback for active tools (crosshair, grab hand)
 - [x] **Interactive Tools Integration** - Seamless switching between tools
 
-### Phase 1.5: Polish & UX ✅ (Mostly Complete)
+### Phase 1.5: Polish & UX ✅ (Complete)
 - [x] **Series Thumbnail Browser** - Visual thumbnail strip for quick navigation
 - [x] **Keyboard Shortcuts** - Arrow keys, PageUp/PageDown, Home/End, W/L/Z/P tools
 - [x] **Help Overlay** - Modal dialog showing all keyboard shortcuts
 - [x] **Image Slider** - Range slider for quick sequential navigation
 - [x] **Collapsible Sidebar** - Expandable/collapsible sections with localStorage persistence
 - [x] **Modern Dark Theme** - Professional black color scheme with neutral grays
+- [x] **Dark/Light Theme Toggle** - Settings panel with theme switcher
+- [x] **Settings Panel** - Comprehensive settings for appearance, viewport behavior, and display options
 - [x] **Headless UI Integration** - Accessible, unstyled UI components
 - [x] **Viewport Toolbar** - Floating toolbar with reset, fit, zoom, rotate, flip, invert buttons
 - [x] **Left Drawer Menu** - Collapsible left drawer with recent studies and quick actions
 - [x] **Recent Studies History** - Session history for switching between loaded studies
-- [ ] Loading indicators (basic states present, could be enhanced)
+- [ ] Enhanced loading indicators (thumbnails load fast, large files may benefit)
 - [ ] Error handling improvements (basic error handling present)
 - [ ] Comprehensive testing with various DICOM files
 - [ ] Performance optimization and profiling
@@ -149,10 +151,10 @@
 - [ ] Progress indicators
 
 ### Phase 4: Polish & Production (Weeks 8-9)
-- [ ] Dark/light theme toggle
+- [x] Dark/light theme toggle (completed in Phase 1.5)
+- [x] Comprehensive keyboard shortcuts (completed in Phase 1.5)
+- [x] Help overlay (completed in Phase 1.5)
 - [ ] Responsive layout for tablets
-- [ ] Comprehensive keyboard shortcuts
-- [ ] Help overlay
 - [ ] Accessibility improvements
 - [ ] Unit tests (>80% coverage)
 - [ ] E2E tests with Playwright

@@ -22,21 +22,22 @@ export async function initCornerstone(): Promise<void> {
     cornerstoneWADOImageLoader.external.cornerstone = cornerstone
     cornerstoneWADOImageLoader.external.dicomParser = dicomParser
 
-    // Disable web workers for now to simplify debugging
-    // We can enable them later for better performance
+    // Configure web workers for high-quality decoding and better performance
+    // Use hardware concurrency to determine optimal worker count
+    const maxWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1) // Reserve 1 core for main thread
     const config = {
-      maxWebWorkers: 0,  // Disable web workers
-      startWebWorkersOnDemand: false,
+      maxWebWorkers: maxWorkers,
+      startWebWorkersOnDemand: true, // Start workers only when needed
       taskConfiguration: {
         decodeTask: {
-          initializeCodecsOnStartup: false,
-          strict: false,
+          initializeCodecsOnStartup: true, // Initialize codecs for faster first load
+          strict: true, // Strict decoding in workers too
         },
       },
     }
 
     cornerstoneWADOImageLoader.webWorkerManager.initialize(config)
-    console.log('WADO Image Loader configured (web workers disabled)')
+    console.log(`WADO Image Loader configured with ${maxWorkers} web workers (from ${navigator.hardwareConcurrency || 4} cores)`)
 
     // Configure Cornerstone image cache for better performance
     // This prevents flickering when navigating through images
@@ -44,20 +45,32 @@ export async function initCornerstone(): Promise<void> {
     cornerstone.imageCache.setMaximumSizeBytes(imageCacheSize)
     console.log(`Image cache configured: ${imageCacheSize / (1024 * 1024)}MB`)
 
+    // Log High-DPI display information
+    const pixelRatio = window.devicePixelRatio || 1
+    console.log(`Display: devicePixelRatio = ${pixelRatio}${pixelRatio > 1 ? ' (High-DPI/Retina detected)' : ' (Standard DPI)'}`)
+    if (pixelRatio > 1) {
+      console.log('High-DPI rendering enabled - Cornerstone will automatically scale for optimal quality')
+    }
+
     // Register the WADO image loader with Cornerstone for both schemes
     cornerstone.registerImageLoader('wadouri', cornerstoneWADOImageLoader.wadouri.loadImage)
     cornerstone.registerImageLoader('dicomfile', cornerstoneWADOImageLoader.wadouri.loadImage)
     console.log('Image loader registered for wadouri and dicomfile schemes')
 
-    // Configure WADO Image Loader to use data URI for file loading
+    // Configure WADO Image Loader for maximum quality
     cornerstoneWADOImageLoader.configure({
       beforeSend: function(xhr: any) {
         // No need for authentication for local files
       },
-      strict: false,
-      useWebWorkers: false,
+      strict: true, // Strict mode: reject lossy formats when lossless expected
+      useWebWorkers: true, // Enable web workers for better performance
+      decodeConfig: {
+        // Preserve maximum precision for medical imaging
+        convertFloatPixelDataToInt: false, // Keep full floating-point precision
+        usePDFJS: false, // Don't use PDF.js for DICOM decoding
+      },
     })
-    console.log('WADO Image Loader additional configuration complete')
+    console.log('WADO Image Loader configured for maximum quality (strict mode, lossless decoding, web workers enabled)')
 
     // IMPORTANT: DO NOT initialize Cornerstone Tools - it causes rendering issues
     // The tools library has compatibility problems with cornerstone-core v2.x

@@ -68,9 +68,10 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       console.log('Enabling cornerstone element...')
       cornerstone.enable(element)
       console.log('✓ Element enabled')
-      // Force resize to ensure canvas fills the container
+      // Force resize to ensure canvas fills container and uses devicePixelRatio for High-DPI displays
+      // The 'true' parameter enables high-DPI support (scales canvas by devicePixelRatio)
       cornerstone.resize(element, true)
-      console.log('✓ Element resized')
+      console.log(`✓ Element resized (devicePixelRatio: ${window.devicePixelRatio || 1})`)
       console.log('Cornerstone element enabled and resized successfully')
     } catch (err) {
       // Log the error but don't block the viewport - cornerstone-tools may throw
@@ -78,7 +79,19 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       console.warn('Warning during enable (non-critical):', err)
     }
 
+    // Handle window resize for responsive high-DPI scaling
+    const handleResize = () => {
+      try {
+        cornerstone.resize(element, true) // Re-apply high-DPI scaling on resize
+      } catch (err) {
+        console.warn('Error resizing viewport:', err)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
     return () => {
+      window.removeEventListener('resize', handleResize)
       try {
         cornerstone.disable(element)
       } catch (err) {
@@ -184,6 +197,13 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           viewport.invert = settings.invert
 
           cornerstone.setViewport(element, viewport)
+
+          // Initialize currentWL state with the actual applied values
+          setCurrentWL({ width: windowWidth, center: windowCenter })
+
+          // Update the store with DICOM metadata values so they become the new baseline
+          // This ensures manual adjustments work from the correct starting point
+          setWindowLevel(windowCenter, windowWidth)
         }
 
         console.log('Image displayed successfully')
@@ -209,12 +229,10 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     try {
       const viewport = cornerstone.getViewport(element)
       if (viewport) {
-        // Use DICOM metadata window/level if available, otherwise use stored settings
-        const windowWidth = currentInstance?.metadata?.windowWidth || settings.windowWidth
-        const windowCenter = currentInstance?.metadata?.windowCenter || settings.windowCenter
-
-        viewport.voi.windowWidth = windowWidth
-        viewport.voi.windowCenter = windowCenter
+        // Use stored settings (user adjustments take priority)
+        // DICOM metadata is only used on initial image load, not here
+        viewport.voi.windowWidth = settings.windowWidth
+        viewport.voi.windowCenter = settings.windowCenter
         viewport.scale = fitScaleRef.current * settings.zoom
         viewport.translation = { x: settings.pan.x, y: settings.pan.y }
         viewport.rotation = settings.rotation
@@ -223,6 +241,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         viewport.invert = settings.invert
 
         cornerstone.setViewport(element, viewport)
+
+        // Update currentWL state to match the applied values
+        setCurrentWL({ width: settings.windowWidth, center: settings.windowCenter })
       }
     } catch (err) {
       console.error('Failed to update viewport:', err)
@@ -504,7 +525,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         style={{
           minHeight: '400px',
           cursor: isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair',
-          imageRendering: 'auto' // Use browser's default high-quality rendering for medical images
+          imageRendering: 'crisp-edges' // Pixel-perfect rendering for medical images - no interpolation
         }}
       />
 

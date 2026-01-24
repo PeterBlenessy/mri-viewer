@@ -4,8 +4,8 @@
 
 The MR DICOM Viewer is a modern web-based application built with React and TypeScript for viewing medical imaging DICOM files. The architecture emphasizes client-side processing, performance, and maintainability.
 
-**Version**: 1.0
-**Last Updated**: 2026-01-18
+**Version**: 1.1
+**Last Updated**: 2026-01-24
 **Status**: Active Development
 
 ## Architecture Principles
@@ -180,17 +180,58 @@ MR-viewer/
   - Recursive folder scanning
   - Progress indication
 
-### 5. No Web Workers (Current)
+### 5. Web Workers for Image Decoding
 
-**Decision**: Disabled web workers in WADO image loader
+**Decision**: Enabled web workers in WADO image loader (as of January 24, 2026)
 **Rationale**:
-- Simpler debugging during development
-- Avoid worker initialization overhead
-- Direct access to DICOM data
+- Improved performance with background thread decoding
+- Non-blocking UI during DICOM processing
+- Automatic CPU core detection for optimal worker count
 
-**Future Consideration**: Enable workers for production to improve performance
+**Implementation**:
+- Workers = (CPU cores - 1) to reserve main thread
+- Example: 7 workers on 8-core CPU
+- Decoding happens in parallel without blocking UI
 
-### 6. File Organization Strategy
+### 6. Maximum Image Quality Configuration
+
+**Decision**: Configure for maximum lossless quality (as of January 24, 2026)
+**Rationale**:
+- Medical imaging requires pixel-perfect accuracy
+- Preserve full diagnostic quality
+- Support high-DPI displays (Retina, 4K)
+
+**Implementation Details**:
+
+1. **Pixel-Perfect Rendering**:
+   ```css
+   imageRendering: 'crisp-edges'  /* No interpolation/anti-aliasing */
+   ```
+
+2. **Strict Lossless Decoding**:
+   ```typescript
+   strict: true,  // Reject lossy formats
+   convertFloatPixelDataToInt: false,  // Preserve full precision
+   initializeCodecsOnStartup: true  // Faster first load
+   ```
+
+3. **High-DPI Display Support**:
+   - Automatic `devicePixelRatio` detection
+   - Canvas scaling for Retina/4K displays
+   - Responsive resize handling
+
+4. **Transfer Syntax Verification**:
+   - Logs compression type for each DICOM file
+   - Warns if lossy compression detected
+   - Supports: Uncompressed, JPEG Lossless, JPEG 2000 Lossless, RLE Lossless
+
+**Quality Guarantees**:
+- ✓ 100% lossless pixel data preservation
+- ✓ Full bit-depth support (8-bit, 12-bit, 16-bit)
+- ✓ No quality-degrading interpolation
+- ✓ High-DPI display optimization
+
+### 7. File Organization Strategy
 
 **Decision**: Use WADO file manager for image ID management
 **Rationale**:

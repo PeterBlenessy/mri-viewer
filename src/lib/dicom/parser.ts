@@ -32,7 +32,24 @@ export async function parseDicomFiles(files: File[]): Promise<DicomStudy[]> {
       const hasPixelData = dataSet.elements.x7fe00010 !== undefined
 
       if (hasPixelData) {
-        console.log(`✓ Parsed ${file.name}: modality=${metadata.modality}, WC=${metadata.windowCenter}, WW=${metadata.windowWidth}`)
+        // Log transfer syntax to verify lossless compression
+        const transferSyntaxUID = getString(dataSet, 'x00020010', 'Unknown')
+        const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
+        const isLossless = isLosslessTransferSyntax(transferSyntaxUID)
+
+        console.log(`✓ Parsed ${file.name}:`, {
+          modality: metadata.modality,
+          windowCenter: metadata.windowCenter,
+          windowWidth: metadata.windowWidth,
+          transferSyntax: transferSyntaxName,
+          lossless: isLossless ? '✓ LOSSLESS' : '⚠️ LOSSY',
+          uid: transferSyntaxUID
+        })
+
+        if (!isLossless) {
+          console.warn(`⚠️ WARNING: ${file.name} uses lossy compression (${transferSyntaxName})`)
+        }
+
         instances.push({ file, dataset: dataSet, metadata })
       } else {
         console.log(`✗ Skipping ${file.name}: no pixel data`)
@@ -80,7 +97,24 @@ export async function parseDicomFilesWithDirectories(
       const hasPixelData = dataSet.elements.x7fe00010 !== undefined
 
       if (hasPixelData) {
-        console.log(`✓ Parsed ${file.name}: modality=${metadata.modality}, WC=${metadata.windowCenter}, WW=${metadata.windowWidth}`)
+        // Log transfer syntax to verify lossless compression
+        const transferSyntaxUID = getString(dataSet, 'x00020010', 'Unknown')
+        const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
+        const isLossless = isLosslessTransferSyntax(transferSyntaxUID)
+
+        console.log(`✓ Parsed ${file.name}:`, {
+          modality: metadata.modality,
+          windowCenter: metadata.windowCenter,
+          windowWidth: metadata.windowWidth,
+          transferSyntax: transferSyntaxName,
+          lossless: isLossless ? '✓ LOSSLESS' : '⚠️ LOSSY',
+          uid: transferSyntaxUID
+        })
+
+        if (!isLossless) {
+          console.warn(`⚠️ WARNING: ${file.name} uses lossy compression (${transferSyntaxName})`)
+        }
+
         instances.push({ file, dataset: dataSet, metadata, directoryHandle })
       } else {
         console.log(`✗ Skipping ${file.name}: no pixel data`)
@@ -98,10 +132,61 @@ export async function parseDicomFilesWithDirectories(
 }
 
 /**
+ * Helper function to get string from dataset (used for transfer syntax too)
+ */
+function getString(dataSet: dicomParser.DataSet, tag: string, defaultValue: string = ''): string {
+  try {
+    return dataSet.string(tag) || defaultValue
+  } catch {
+    return defaultValue
+  }
+}
+
+/**
+ * Map transfer syntax UID to human-readable name
+ */
+function getTransferSyntaxName(uid: string): string {
+  const syntaxMap: Record<string, string> = {
+    '1.2.840.10008.1.2': 'Implicit VR Little Endian (Uncompressed)',
+    '1.2.840.10008.1.2.1': 'Explicit VR Little Endian (Uncompressed)',
+    '1.2.840.10008.1.2.2': 'Explicit VR Big Endian (Uncompressed)',
+    '1.2.840.10008.1.2.4.50': 'JPEG Baseline (Lossy)',
+    '1.2.840.10008.1.2.4.51': 'JPEG Extended (Lossy)',
+    '1.2.840.10008.1.2.4.57': 'JPEG Lossless Non-Hierarchical',
+    '1.2.840.10008.1.2.4.70': 'JPEG Lossless Non-Hierarchical First-Order Prediction',
+    '1.2.840.10008.1.2.4.80': 'JPEG-LS Lossless',
+    '1.2.840.10008.1.2.4.81': 'JPEG-LS Lossy',
+    '1.2.840.10008.1.2.4.90': 'JPEG 2000 Lossless',
+    '1.2.840.10008.1.2.4.91': 'JPEG 2000 Lossy',
+    '1.2.840.10008.1.2.5': 'RLE Lossless',
+    '1.2.840.10008.1.2.1.99': 'Deflated Explicit VR Little Endian',
+  }
+  return syntaxMap[uid] || `Unknown (${uid})`
+}
+
+/**
+ * Check if transfer syntax is lossless
+ */
+function isLosslessTransferSyntax(uid: string): boolean {
+  const losslessSyntaxes = [
+    '1.2.840.10008.1.2',      // Implicit VR Little Endian
+    '1.2.840.10008.1.2.1',    // Explicit VR Little Endian
+    '1.2.840.10008.1.2.2',    // Explicit VR Big Endian
+    '1.2.840.10008.1.2.4.57', // JPEG Lossless Non-Hierarchical
+    '1.2.840.10008.1.2.4.70', // JPEG Lossless First-Order Prediction
+    '1.2.840.10008.1.2.4.80', // JPEG-LS Lossless
+    '1.2.840.10008.1.2.4.90', // JPEG 2000 Lossless
+    '1.2.840.10008.1.2.5',    // RLE Lossless
+    '1.2.840.10008.1.2.1.99', // Deflated Explicit VR Little Endian
+  ]
+  return losslessSyntaxes.includes(uid)
+}
+
+/**
  * Extract relevant metadata from a DICOM dataset
  */
 function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
-  const getString = (tag: string, defaultValue: string = ''): string => {
+  const getStringLocal = (tag: string, defaultValue: string = ''): string => {
     try {
       return dataSet.string(tag) || defaultValue
     } catch {
@@ -118,7 +203,7 @@ function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
     }
   }
 
-  const modality = getString('x00080060', 'OT')
+  const modality = getStringLocal('x00080060', 'OT')
 
   // Get window/level from DICOM tags if available
   let windowCenter = getNumber('x00281050', 0)
@@ -155,19 +240,19 @@ function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
   }
 
   return {
-    patientName: getString('x00100010', 'Unknown'),
-    patientID: getString('x00100020', 'Unknown'),
-    studyDate: getString('x00080020', ''),
-    studyDescription: getString('x00081030', ''),
-    seriesDescription: getString('x0008103e', ''),
+    patientName: getStringLocal('x00100010', 'Unknown'),
+    patientID: getStringLocal('x00100020', 'Unknown'),
+    studyDate: getStringLocal('x00080020', ''),
+    studyDescription: getStringLocal('x00081030', ''),
+    seriesDescription: getStringLocal('x0008103e', ''),
     instanceNumber: getNumber('x00200013', 0),
     windowCenter,
     windowWidth,
     sliceLocation: getNumber('x00201041', 0),
     sliceThickness: getNumber('x00180050', 0),
-    studyInstanceUID: getString('x0020000d', ''),
-    seriesInstanceUID: getString('x0020000e', ''),
-    sopInstanceUID: getString('x00080018', ''),
+    studyInstanceUID: getStringLocal('x0020000d', ''),
+    seriesInstanceUID: getStringLocal('x0020000e', ''),
+    sopInstanceUID: getStringLocal('x00080018', ''),
     seriesNumber: getNumber('x00200011', 0),
     modality,
     rows: getNumber('x00280010', 0),

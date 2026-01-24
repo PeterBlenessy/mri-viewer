@@ -1,6 +1,6 @@
 # MR DICOM Viewer - Feature Backlog
 
-**Last Updated**: January 20, 2026
+**Last Updated**: January 24, 2026
 **Purpose**: Track proposed features and UX improvements beyond the current roadmap
 
 ---
@@ -13,30 +13,29 @@ This document captures feature ideas and UX improvements for consideration in fu
 
 ## High Priority Features
 
-### 1. Settings Panel
+### 1. Settings Panel ✅ COMPLETED
 
 **Description**: A dedicated settings modal or sidebar section for user preferences.
 
-**Rationale**: Currently there's no way to customize application behavior. Users have different preferences for mouse sensitivity, default tools, and display options.
+**Status**: Implemented January 24, 2026
 
-**Suggested Settings Categories**:
+**Implemented Features**:
+
+#### Appearance
+- Dark/Light theme toggle
 
 #### Viewport Behavior
 - Mouse wheel scroll direction (natural vs inverted)
-- Scroll sensitivity for image navigation
-- Default tool on startup (Window/Level, Pan, Zoom)
-- Mouse drag sensitivity for Window/Level adjustments
-- Zoom sensitivity
+- Window/Level sensitivity adjustment
+- Zoom sensitivity adjustment
 
 #### Display Preferences
 - Show/hide DICOM metadata overlay on viewport
-- Show/hide scale ruler
-- Thumbnail size (small / medium / large)
-- Default sidebar sections expanded/collapsed state
+- Persist studies setting (reload studies after refresh)
 
-#### Performance
-- Image interpolation quality (smooth vs pixelated/fast)
-- Preload adjacent images (0, 1, 2, or 5 images ahead/behind)
+**Additional Settings Possible**:
+- Thumbnail size options
+- Preload adjacent images settings
 
 **Complexity**: Medium
 **Dependencies**: None
@@ -70,19 +69,22 @@ This document captures feature ideas and UX improvements for consideration in fu
 
 ## Medium Priority Features
 
-### 4. Theme Toggle (Light/Dark)
+### 4. Theme Toggle (Light/Dark) ✅ COMPLETED
 
 **Description**: Option to switch between dark and light color schemes.
+
+**Status**: Implemented January 24, 2026
+
+**Implemented Features**:
+- Dark/Light theme toggle in Settings Panel
+- Persisted in localStorage (via settingsStore)
+- Applied globally across all components
+- Smooth transitions between themes
 
 **Rationale**:
 - Some radiologists prefer light backgrounds
 - Accessibility compliance
 - Better visibility in bright environments
-
-**Implementation Notes**:
-- Already mentioned in original PRD (Phase 4)
-- Use Tailwind's dark mode utilities
-- Persist preference in localStorage
 
 **Complexity**: Low-Medium
 **Dependencies**: None
@@ -247,8 +249,8 @@ These features can be integrated into the existing phase structure:
 | Viewport Toolbar | Phase 1.5 (Polish) | ✅ Completed |
 | Recent Studies | Phase 1.5 (Polish) | ✅ Completed |
 | Left Drawer Menu | Phase 1.5 (Polish) | ✅ Completed |
-| Theme Toggle | Phase 1.5 or Phase 4 | Pending |
-| Settings Panel | Phase 1.5 or Phase 4 | Pending |
+| Theme Toggle | Phase 1.5 or Phase 4 | ✅ Completed |
+| Settings Panel | Phase 1.5 or Phase 4 | ✅ Completed |
 | Cine Loop | Phase 2 or standalone | Pending |
 | Contextual Overlay | Phase 2 | Pending |
 | Measurement Tools | Phase 2 (with annotations) | Pending |

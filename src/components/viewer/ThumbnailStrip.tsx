@@ -112,7 +112,11 @@ const Thumbnail = forwardRef<HTMLButtonElement, ThumbnailProps>(
         <div
           ref={canvasRef}
           className="w-20 h-20 bg-black"
-          style={{ minWidth: '80px', minHeight: '80px' }}
+          style={{
+            minWidth: '80px',
+            minHeight: '80px',
+            imageRendering: 'crisp-edges' // Pixel-perfect rendering
+          }}
         />
         <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs py-0.5 text-center">
           {index + 1}
