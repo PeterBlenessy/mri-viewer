@@ -70,11 +70,11 @@ export function KeyboardShortcutsHelp({ show, onClose }: KeyboardShortcutsHelpPr
               <h3 className="text-sm font-medium uppercase tracking-wider text-gray-400 mb-3">
                 {section.category}
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {section.items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-gray-300">{item.description}</span>
-                    <div className="flex gap-1">
+                  <div key={index} className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-white">{item.description}</span>
+                    <div className="flex gap-1 flex-shrink-0">
                       {item.keys.map((key, keyIndex) => (
                         <kbd
                           key={keyIndex}
