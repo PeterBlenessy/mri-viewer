@@ -28,10 +28,29 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const zoomTimeoutRef = useRef<number | null>(null)
 
   const currentInstance = useStudyStore((state) => state.currentInstance)
+  const currentSeries = useStudyStore((state) => state.currentSeries)
   const settings = useViewportStore((state) => state.settings)
+  const currentModality = useViewportStore((state) => state.currentModality)
   const setWindowLevel = useViewportStore((state) => state.setWindowLevel)
+  const setModality = useViewportStore((state) => state.setModality)
   const setZoom = useViewportStore((state) => state.setZoom)
   const setPan = useViewportStore((state) => state.setPan)
+
+  // When current image changes, update the DICOM reset target
+  // W/L is per-image in DICOM, so each image can have different optimal values
+  useEffect(() => {
+    if (currentInstance?.metadata) {
+      const modality = currentInstance.metadata.modality
+      const dicomCenter = currentInstance.metadata.windowCenter
+      const dicomWidth = currentInstance.metadata.windowWidth
+
+      console.log(`Image changed: ${modality}, instance #${currentInstance.instanceNumber}, DICOM W/L: ${dicomCenter}/${dicomWidth}`)
+
+      // Update modality with this image's DICOM metadata
+      // This updates the reset target while preserving user adjustments
+      setModality(modality, dicomCenter, dicomWidth)
+    }
+  }, [currentInstance?.sopInstanceUID, setModality])
 
   // Initialize Cornerstone
   useEffect(() => {
@@ -166,12 +185,11 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         // Apply viewport settings
         const viewport = cornerstone.getViewport(element)
         if (viewport) {
-          // Use DICOM metadata window/level if available, otherwise use stored settings
-          // This is crucial for different modalities (MR vs X-ray) which have very different ranges
-          const windowWidth = currentInstance?.metadata?.windowWidth || settings.windowWidth
-          const windowCenter = currentInstance?.metadata?.windowCenter || settings.windowCenter
+          // Use store values (modality-specific settings already loaded by setModality)
+          const windowWidth = settings.windowWidth
+          const windowCenter = settings.windowCenter
 
-          console.log(`Applying W/L: center=${windowCenter}, width=${windowWidth}, modality=${currentInstance?.metadata?.modality}`)
+          console.log(`Applying W/L for ${currentInstance?.metadata?.modality}: center=${windowCenter}, width=${windowWidth}`)
 
 
           // Calculate scale to fit image in viewport
@@ -200,10 +218,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
 
           // Initialize currentWL state with the actual applied values
           setCurrentWL({ width: windowWidth, center: windowCenter })
-
-          // Update the store with DICOM metadata values so they become the new baseline
-          // This ensures manual adjustments work from the correct starting point
-          setWindowLevel(windowCenter, windowWidth)
         }
 
         console.log('Image displayed successfully')

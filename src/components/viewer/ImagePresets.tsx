@@ -2,6 +2,7 @@ import { useViewportStore } from '@/stores/viewportStore'
 
 export function ImagePresets() {
   const setWindowLevel = useViewportStore((state) => state.setWindowLevel)
+  const resetSettings = useViewportStore((state) => state.resetSettings)
 
   const presets = [
     {
@@ -60,8 +61,9 @@ export function ImagePresets() {
         ))}
       </div>
       <button
-        onClick={() => setWindowLevel(40, 400)}
+        onClick={resetSettings}
         className="w-full px-3 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded text-xs font-medium transition-colors"
+        title="Reset to DICOM metadata or modality defaults"
       >
         Reset to Default
       </button>
