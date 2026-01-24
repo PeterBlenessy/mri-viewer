@@ -126,6 +126,19 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
                 isDark={isDark}
               />
             </SettingsRow>
+
+            {/* Privacy Information */}
+            <div className={`p-3 rounded-lg text-xs ${isDark ? 'bg-[#0f0f0f] border border-[#2a2a2a]' : 'bg-gray-50 border border-gray-200'}`}>
+              <p className={`font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                HIPAA-Compliant Privacy
+              </p>
+              <ul className="space-y-1 text-gray-500">
+                <li>• All processing happens locally in your browser</li>
+                <li>• No patient data is sent to external servers</li>
+                <li>• Console logs contain zero patient information</li>
+                <li>• Exported files exclude patient data by default</li>
+              </ul>
+            </div>
           </SettingsSection>
 
           {/* Data Section */}

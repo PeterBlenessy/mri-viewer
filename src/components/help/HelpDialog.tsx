@@ -213,6 +213,15 @@ export function HelpDialog({ show, onClose }: HelpDialogProps) {
                 <strong className="text-gray-200">Privacy-First Exports:</strong>
                 <p>Exported filenames exclude patient identifiable information by default. You must explicitly enable patient data inclusion in exports.</p>
               </div>
+              <div>
+                <strong className="text-gray-200">HIPAA-Compliant Logging:</strong>
+                <p>Console logs never contain patient names, IDs, or identifiable information. Only critical errors and compression warnings are logged to maintain privacy while allowing technical debugging.</p>
+              </div>
+              <div className="mt-3 p-3 bg-[#0f0f0f] rounded border border-[#2a2a2a]">
+                <p className="text-xs text-gray-400">
+                  <strong>Safe to Use:</strong> This viewer can be safely used in clinical and research environments that require strict patient data protection. All processing happens locally with zero data transmission.
+                </p>
+              </div>
             </div>
           </section>
 

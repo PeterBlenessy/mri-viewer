@@ -96,17 +96,12 @@ export const useViewportStore = create<ViewportState>((set) => ({
   // If defaultCenter/defaultWidth provided (from DICOM metadata), use those to initialize
   setModality: (modality, defaultCenter, defaultWidth) =>
     set((state) => {
-      console.log(`[setModality] Called with: modality=${modality}, defaultCenter=${defaultCenter}, defaultWidth=${defaultWidth}`)
-
       // Get stored settings for this modality, or use defaults
       let modalityWL = state.modalitySettings[modality]
 
       // Fall back to modality default if no stored settings
       if (!modalityWL) {
         modalityWL = modalityDefaults[modality] || modalityDefaults['OT']
-        console.log(`[setModality] No stored settings, using hard-coded defaults: ${modalityWL.windowCenter}/${modalityWL.windowWidth}`)
-      } else {
-        console.log(`[setModality] Current stored settings: ${modalityWL.windowCenter}/${modalityWL.windowWidth}, dicomDefault: ${modalityWL.dicomDefault?.windowCenter}/${modalityWL.dicomDefault?.windowWidth}`)
       }
 
       // If we have DICOM metadata, always update the reset target
@@ -134,18 +129,14 @@ export const useViewportStore = create<ViewportState>((set) => ({
             windowWidth: defaultWidth,
             dicomDefault: { windowCenter: defaultCenter, windowWidth: defaultWidth },
           }
-          console.log(`Applied DICOM metadata for ${modality}: ${defaultCenter}/${defaultWidth}`)
         } else {
           // Keep user adjustments but update the DICOM reset target for current image
           modalityWL = {
             ...modalityWL,
             dicomDefault: { windowCenter: defaultCenter, windowWidth: defaultWidth },
           }
-          console.log(`Updated ${modality} DICOM reset target to: ${defaultCenter}/${defaultWidth} (keeping user adjustments: ${modalityWL.windowCenter}/${modalityWL.windowWidth})`)
         }
       }
-
-      console.log(`Switching to modality: ${modality}, W/L: ${modalityWL.windowCenter}/${modalityWL.windowWidth}`)
 
       return {
         currentModality: modality,
@@ -205,16 +196,10 @@ export const useViewportStore = create<ViewportState>((set) => ({
     set((state) => {
       const currentModalitySettings = state.modalitySettings[state.currentModality]
 
-      console.log(`[resetSettings] Current modality: ${state.currentModality}`)
-      console.log(`[resetSettings] Current settings:`, currentModalitySettings)
-
       // Prefer DICOM defaults if available, otherwise use hard-coded modality defaults
       const resetTarget = currentModalitySettings?.dicomDefault ||
                           modalityDefaults[state.currentModality] ||
                           modalityDefaults['OT']
-
-      const source = currentModalitySettings?.dicomDefault ? 'DICOM metadata (current image)' : 'hard-coded modality defaults'
-      console.log(`[resetSettings] Resetting ${state.currentModality} to ${source}: ${resetTarget.windowCenter}/${resetTarget.windowWidth}`)
 
       return {
         modalitySettings: {

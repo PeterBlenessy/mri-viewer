@@ -14,22 +14,13 @@ export function useDicomLoader() {
     setStoreError(null)
 
     try {
-      console.log(`Loading ${files.length} DICOM files...`)
       const studies = await parseDicomFiles(files)
-
-      console.log(`Parsing complete. Found ${studies.length} studies`)
 
       if (studies.length === 0) {
         throw new Error('No valid DICOM files found in the selected files/folder')
       }
 
-      // Log study details
-      studies.forEach((study, i) => {
-        console.log(`Study ${i + 1}: ${study.series.length} series, ${study.series.reduce((sum, s) => sum + s.instances.length, 0)} instances`)
-      })
-
       setStudies(studies)
-      console.log(`Successfully loaded ${studies.length} studies`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load DICOM files'
       console.error('Error loading DICOM files:', err)

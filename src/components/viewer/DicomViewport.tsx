@@ -44,8 +44,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       const dicomCenter = currentInstance.metadata.windowCenter
       const dicomWidth = currentInstance.metadata.windowWidth
 
-      console.log(`Image changed: ${modality}, instance #${currentInstance.instanceNumber}, DICOM W/L: ${dicomCenter}/${dicomWidth}`)
-
       // Update modality with this image's DICOM metadata
       // This updates the reset target while preserving user adjustments
       setModality(modality, dicomCenter, dicomWidth)
@@ -84,18 +82,14 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     const element = canvasRef.current
 
     try {
-      console.log('Enabling cornerstone element...')
       cornerstone.enable(element)
-      console.log('✓ Element enabled')
       // Force resize to ensure canvas fills container and uses devicePixelRatio for High-DPI displays
       // The 'true' parameter enables high-DPI support (scales canvas by devicePixelRatio)
       cornerstone.resize(element, true)
-      console.log(`✓ Element resized (devicePixelRatio: ${window.devicePixelRatio || 1})`)
-      console.log('Cornerstone element enabled and resized successfully')
     } catch (err) {
       // Log the error but don't block the viewport - cornerstone-tools may throw
       // errors during initialization but the viewport still works for basic viewing
-      console.warn('Warning during enable (non-critical):', err)
+      console.warn('Cornerstone enable warning (non-critical):', err)
     }
 
     // Handle window resize for responsive high-DPI scaling
@@ -182,7 +176,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
 
     // Skip if this is already the displayed image
     if (currentImageIdRef.current === imageId) {
-      console.log('Image already displayed, skipping reload:', imageId)
       return
     }
 
@@ -192,26 +185,14 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
 
     async function loadAndDisplayImage() {
       try {
-        console.log('=== Starting image load ===')
-        console.log('ImageId:', imageId)
-        console.log('ImageId type:', typeof imageId)
-        console.log('Current instance:', currentInstance)
-        console.log('Element:', element)
-        console.log('Element enabled?:', cornerstone.getEnabledElement ? 'getEnabledElement exists' : 'NO getEnabledElement')
-
         // Load the image
-        console.log('Calling cornerstone.loadImage with imageId:', imageId)
         const image = await cornerstone.loadImage(imageId)
-        console.log('✓ Image loaded successfully')
 
         // Display it
-        console.log('Displaying image on element...')
         cornerstone.displayImage(element, image)
-        console.log('Image displayed on element')
 
         // Resize canvas to fit container after image is loaded
         cornerstone.resize(element, true)
-        console.log('Canvas resized after image load')
 
         // Apply viewport settings
         const viewport = cornerstone.getViewport(element)
@@ -219,9 +200,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           // Use store values (modality-specific settings already loaded by setModality)
           const windowWidth = settings.windowWidth
           const windowCenter = settings.windowCenter
-
-          console.log(`Applying W/L for ${currentInstance?.metadata?.modality}: center=${windowCenter}, width=${windowWidth}`)
-
 
           // Calculate scale to fit image in viewport
           const elementRect = element.getBoundingClientRect()
@@ -251,12 +229,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
           setCurrentWL({ width: windowWidth, center: windowCenter })
         }
 
-        console.log('Image displayed successfully')
         setIsLoadingImage(false)
       } catch (err) {
-        console.error('Failed to load/display image:', err)
-        console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err)))
-        console.error('Stack trace:', err instanceof Error ? err.stack : 'No stack trace')
+        console.error('Failed to load DICOM image:', err)
         setError(`Failed to load DICOM image: ${err instanceof Error ? err.message : String(err)}`)
         setIsLoadingImage(false)
       }
@@ -470,8 +445,6 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       // Get current zoom from store and calculate new zoom
       const currentZoomValue = settings.zoom
       const newZoom = Math.max(0.1, Math.min(20, currentZoomValue + zoomDelta))
-
-      console.log('[Zoom] Wheel - current:', currentZoomValue.toFixed(2), 'delta:', zoomDelta.toFixed(2), '→ new:', newZoom.toFixed(2))
 
       // Apply zoom directly to viewport
       try {

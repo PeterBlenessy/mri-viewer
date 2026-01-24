@@ -7,8 +7,6 @@ import { FileWithDirectory, saveDirectoryHandle } from '../storage/directoryHand
  * Parse DICOM files and organize them into studies and series
  */
 export async function parseDicomFiles(files: File[]): Promise<DicomStudy[]> {
-  console.log(`Parsing ${files.length} DICOM files...`)
-
   const instances: Array<{
     file: File
     dataset: any
@@ -32,36 +30,24 @@ export async function parseDicomFiles(files: File[]): Promise<DicomStudy[]> {
       const hasPixelData = dataSet.elements.x7fe00010 !== undefined
 
       if (hasPixelData) {
-        // Log transfer syntax to verify lossless compression
+        // Check for lossy compression
         const transferSyntaxUID = getString(dataSet, 'x00020010', 'Unknown')
-        const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
         const isLossless = isLosslessTransferSyntax(transferSyntaxUID)
 
-        console.log(`✓ Parsed ${file.name}:`, {
-          modality: metadata.modality,
-          windowCenter: metadata.windowCenter,
-          windowWidth: metadata.windowWidth,
-          transferSyntax: transferSyntaxName,
-          lossless: isLossless ? '✓ LOSSLESS' : '⚠️ LOSSY',
-          uid: transferSyntaxUID
-        })
-
         if (!isLossless) {
-          console.warn(`⚠️ WARNING: ${file.name} uses lossy compression (${transferSyntaxName})`)
+          const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
+          console.warn(`⚠️ Lossy compression detected: ${transferSyntaxName}`)
         }
 
         instances.push({ file, dataset: dataSet, metadata })
-      } else {
-        console.log(`✗ Skipping ${file.name}: no pixel data`)
       }
     } catch (error) {
-      console.error(`Failed to parse DICOM file ${file.name}:`, error)
+      console.error(`Failed to parse DICOM file:`, error)
     }
   }
 
   // Organize into studies and series
   const studies = organizeDicomData(instances)
-  console.log(`Parsed ${studies.length} studies`)
 
   return studies
 }
@@ -73,8 +59,6 @@ export async function parseDicomFilesWithDirectories(
   filesWithDirs: FileWithDirectory[],
   rootDirectoryHandle?: FileSystemDirectoryHandle
 ): Promise<DicomStudy[]> {
-  console.log(`Parsing ${filesWithDirs.length} DICOM files with directory tracking...`)
-
   const instances: Array<{
     file: File
     dataset: any
@@ -97,36 +81,24 @@ export async function parseDicomFilesWithDirectories(
       const hasPixelData = dataSet.elements.x7fe00010 !== undefined
 
       if (hasPixelData) {
-        // Log transfer syntax to verify lossless compression
+        // Check for lossy compression
         const transferSyntaxUID = getString(dataSet, 'x00020010', 'Unknown')
-        const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
         const isLossless = isLosslessTransferSyntax(transferSyntaxUID)
 
-        console.log(`✓ Parsed ${file.name}:`, {
-          modality: metadata.modality,
-          windowCenter: metadata.windowCenter,
-          windowWidth: metadata.windowWidth,
-          transferSyntax: transferSyntaxName,
-          lossless: isLossless ? '✓ LOSSLESS' : '⚠️ LOSSY',
-          uid: transferSyntaxUID
-        })
-
         if (!isLossless) {
-          console.warn(`⚠️ WARNING: ${file.name} uses lossy compression (${transferSyntaxName})`)
+          const transferSyntaxName = getTransferSyntaxName(transferSyntaxUID)
+          console.warn(`⚠️ Lossy compression detected: ${transferSyntaxName}`)
         }
 
         instances.push({ file, dataset: dataSet, metadata, directoryHandle })
-      } else {
-        console.log(`✗ Skipping ${file.name}: no pixel data`)
       }
     } catch (error) {
-      console.error(`Failed to parse DICOM file ${file.name}:`, error)
+      console.error(`Failed to parse DICOM file:`, error)
     }
   }
 
   // Organize into studies and series, tracking directory handles
   const studies = await organizeDicomDataWithDirectories(instances, rootDirectoryHandle)
-  console.log(`Parsed ${studies.length} studies with directory handles`)
 
   return studies
 }
@@ -407,11 +379,6 @@ async function organizeDicomDataWithDirectories(
     const handleId = crypto.randomUUID()
     await saveDirectoryHandle(handleId, directoryHandle)
     study.directoryHandleId = handleId
-
-    console.log(`Study: ${study.patientName}, Series count: ${study.series.length}`)
-    study.series.forEach((series, idx) => {
-      console.log(`  Series ${idx + 1}: ${series.seriesDescription || 'No description'} (${series.instances.length} images)`)
-    })
 
     studies.push(study)
   }

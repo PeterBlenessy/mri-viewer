@@ -70,7 +70,6 @@ interface StudyItemProps {
 
 function StudyItem({ study, isExpanded, onToggle, currentSeriesUID, onSeriesClick }: StudyItemProps) {
   const hidePersonalInfo = useSettingsStore((state) => state.hidePersonalInfo)
-  console.log(`StudyItem rendering: ${study.patientName}, series count: ${study.series.length}`, study.series)
 
   return (
     <div className="border border-[#2a2a2a] rounded bg-[#0f0f0f]/50">

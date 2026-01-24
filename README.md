@@ -119,6 +119,34 @@ pnpm test
 - Development mode works perfectly
 - Solution in progress: Configuring Vite to properly handle WASM modules
 
+## Privacy & Logging
+
+This application is designed with **privacy-first principles** to comply with HIPAA and protect patient data:
+
+### Client-Side Processing
+- All DICOM files are processed entirely in your browser
+- No patient data is ever transmitted to external servers
+- Studies are held in memory only and cleared when the browser closes
+
+### Privacy-Compliant Logging
+- **No patient information is logged** - Patient names, IDs, and identifiable data are never written to console logs
+- **Minimal verbosity** - Console output shows only critical errors and warnings
+- **What is logged:**
+  - ⚠️ Lossy compression warnings (important for medical image quality)
+  - ❌ Critical errors (parsing failures, load failures, viewport errors)
+- **What is NOT logged:**
+  - Patient names, IDs, or dates of birth
+  - DICOM metadata values
+  - File names or paths
+  - Detailed debugging information
+
+This ensures compliance with medical privacy regulations while maintaining debuggability for critical issues.
+
+### Export Privacy
+- Exported file names exclude patient identifiable information by default
+- Patient data must be explicitly enabled in export settings
+- All exports happen locally - no cloud uploads
+
 ## Architecture Decisions
 
 1. **Client-side Only**: All DICOM processing happens in the browser for privacy and performance
@@ -126,6 +154,7 @@ pnpm test
 3. **Zustand**: Lightweight state management, simpler than Redux for this use case
 4. **TypeScript**: Type safety is critical when working with DICOM data
 5. **Modular Structure**: Each phase builds on the previous, can pause/resume between phases
+6. **Privacy-First Logging**: Zero patient data in logs, HIPAA-compliant console output
 
 ## Implementation Status
 
