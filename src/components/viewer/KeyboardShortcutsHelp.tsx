@@ -67,7 +67,7 @@ export function KeyboardShortcutsHelp({ show, onClose }: KeyboardShortcutsHelpPr
         <div className="space-y-6">
           {shortcuts.map((section) => (
             <div key={section.category}>
-              <h3 className="text-lg font-semibold text-blue-400 mb-3">
+              <h3 className="text-sm font-medium uppercase tracking-wider text-gray-400 mb-3">
                 {section.category}
               </h3>
               <div className="space-y-2">
