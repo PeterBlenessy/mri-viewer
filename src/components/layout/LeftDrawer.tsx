@@ -202,10 +202,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
         <div className={`border-t p-4 space-y-2 ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
           {/* Load New Files */}
           <button
-            onClick={() => {
-              onLoadNewFiles()
-              setIsOpen(false)
-            }}
+            onClick={onLoadNewFiles}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${theme === 'dark' ? 'bg-[#1a1a1a] hover:bg-[#2a2a2a]' : 'bg-gray-100 hover:bg-gray-200'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -236,10 +233,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
 
           {/* Settings Button */}
           <button
-            onClick={() => {
-              onOpenSettings()
-              setIsOpen(false)
-            }}
+            onClick={onOpenSettings}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${theme === 'dark' ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -250,10 +244,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
 
           {/* Keyboard Shortcuts Button */}
           <button
-            onClick={() => {
-              onOpenKeyboardShortcuts()
-              setIsOpen(false)
-            }}
+            onClick={onOpenKeyboardShortcuts}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${theme === 'dark' ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -264,10 +255,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
 
           {/* Help Button */}
           <button
-            onClick={() => {
-              onOpenHelp()
-              setIsOpen(false)
-            }}
+            onClick={onOpenHelp}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${theme === 'dark' ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>

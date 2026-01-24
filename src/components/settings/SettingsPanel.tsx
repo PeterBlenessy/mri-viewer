@@ -11,14 +11,12 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
   const scrollDirection = useSettingsStore((state) => state.scrollDirection)
   const windowLevelSensitivity = useSettingsStore((state) => state.windowLevelSensitivity)
   const zoomSensitivity = useSettingsStore((state) => state.zoomSensitivity)
-  const showMetadataOverlay = useSettingsStore((state) => state.showMetadataOverlay)
   const persistStudies = useSettingsStore((state) => state.persistStudies)
 
   const setTheme = useSettingsStore((state) => state.setTheme)
   const setScrollDirection = useSettingsStore((state) => state.setScrollDirection)
   const setWindowLevelSensitivity = useSettingsStore((state) => state.setWindowLevelSensitivity)
   const setZoomSensitivity = useSettingsStore((state) => state.setZoomSensitivity)
-  const setShowMetadataOverlay = useSettingsStore((state) => state.setShowMetadataOverlay)
   const setPersistStudies = useSettingsStore((state) => state.setPersistStudies)
   const resetToDefaults = useSettingsStore((state) => state.resetToDefaults)
 
@@ -71,7 +69,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as Theme)}
-                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#0f0f0f] border-[#2a2a2a] text-white' : 'bg-gray-100 border-gray-300 text-gray-900'}`}
+                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'bg-[#0f0f0f] border-[#2a2a2a] text-white focus:ring-[#3a3a3a]' : 'bg-gray-100 border-gray-300 text-gray-900 focus:ring-gray-400'}`}
               >
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
@@ -85,7 +83,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
               <select
                 value={scrollDirection}
                 onChange={(e) => setScrollDirection(e.target.value as ScrollDirection)}
-                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#0f0f0f] border-[#2a2a2a] text-white' : 'bg-gray-100 border-gray-300 text-gray-900'}`}
+                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'bg-[#0f0f0f] border-[#2a2a2a] text-white focus:ring-[#3a3a3a]' : 'bg-gray-100 border-gray-300 text-gray-900 focus:ring-gray-400'}`}
               >
                 <option value="natural">Natural (scroll up = next)</option>
                 <option value="inverted">Inverted (scroll up = previous)</option>
@@ -117,17 +115,6 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
             </SettingsRow>
           </SettingsSection>
 
-          {/* Display Section */}
-          <SettingsSection title="Display" isDark={isDark}>
-            <SettingsRow label="Metadata Overlay" description="Show DICOM metadata on viewport corners" isDark={isDark}>
-              <ToggleSwitch
-                checked={showMetadataOverlay}
-                onChange={setShowMetadataOverlay}
-                isDark={isDark}
-              />
-            </SettingsRow>
-          </SettingsSection>
-
           {/* Data Section */}
           <SettingsSection title="Data" isDark={isDark}>
             <SettingsRow label="Persist Studies" description="Remember recently opened studies and reload them after refresh" isDark={isDark}>
@@ -150,7 +137,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className={`px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors ${isDark ? 'bg-[#2a2a2a] hover:bg-[#3a3a3a]' : 'bg-gray-700 hover:bg-gray-800'}`}
           >
             Done
           </button>
@@ -215,7 +202,9 @@ function ToggleSwitch({ checked, onChange, isDark }: ToggleSwitchProps) {
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-blue-600' : isDark ? 'bg-[#2a2a2a]' : 'bg-gray-300'
+        checked
+          ? isDark ? 'bg-[#4a4a4a]' : 'bg-gray-600'
+          : isDark ? 'bg-[#2a2a2a]' : 'bg-gray-300'
       }`}
     >
       <span

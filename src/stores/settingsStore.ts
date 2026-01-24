@@ -12,9 +12,6 @@ export interface SettingsState {
   windowLevelSensitivity: number // 0.5 to 3.0, default 1.5
   zoomSensitivity: number // 0.01 to 0.2, default 0.05
 
-  // Display
-  showMetadataOverlay: boolean
-
   // Data persistence
   persistStudies: boolean // Whether to persist studies across sessions
 
@@ -23,7 +20,6 @@ export interface SettingsState {
   setScrollDirection: (direction: ScrollDirection) => void
   setWindowLevelSensitivity: (sensitivity: number) => void
   setZoomSensitivity: (sensitivity: number) => void
-  setShowMetadataOverlay: (show: boolean) => void
   setPersistStudies: (persist: boolean) => void
   resetToDefaults: () => void
 }
@@ -35,7 +31,6 @@ const defaultSettings = {
   scrollDirection: 'natural' as ScrollDirection,
   windowLevelSensitivity: 1.5,
   zoomSensitivity: 0.05,
-  showMetadataOverlay: false,
   persistStudies: true,
 }
 
@@ -98,11 +93,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setZoomSensitivity: (zoomSensitivity) => {
       set({ zoomSensitivity })
       saveSettings({ ...get(), zoomSensitivity })
-    },
-
-    setShowMetadataOverlay: (showMetadataOverlay) => {
-      set({ showMetadataOverlay })
-      saveSettings({ ...get(), showMetadataOverlay })
     },
 
     setPersistStudies: (persistStudies) => {
