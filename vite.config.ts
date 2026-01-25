@@ -16,7 +16,7 @@ export default defineConfig({
     port: 3001,
     open: true,
     watch: {
-      ignored: ['**/MR-data/**', '**/node_modules/**'],
+      ignored: ['**/node_modules/**'],
     },
   },
   logLevel: 'warn', // Suppress source map warnings in dev

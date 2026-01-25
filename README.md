@@ -242,8 +242,8 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/MRI-viewer.git
-cd MRI-viewer
+git clone https://github.com/PeterBlenessy/openscans.git
+cd openscans
 pnpm install
 
 # Create feature branch

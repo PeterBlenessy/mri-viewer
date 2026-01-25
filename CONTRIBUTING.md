@@ -28,8 +28,8 @@ Thank you for your interest in contributing! This document provides guidelines a
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/MRI-viewer.git
-cd MRI-viewer
+git clone https://github.com/PeterBlenessy/openscans.git
+cd openscans
 
 # 2. Install dependencies
 pnpm install
@@ -57,7 +57,7 @@ Install these for the best development experience:
 ### Project Structure
 
 ```
-MRI-viewer/
+openscans/
 ├── src/
 │   ├── components/          # React components
 │   │   ├── viewer/          # Viewport, toolbar, file dropzone

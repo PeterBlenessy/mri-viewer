@@ -120,7 +120,7 @@ useEffect(() => {
 ## Testing and Debugging
 
 ### Development Testing
-- Test with actual DICOM files from `MR-data/` folder
+- Test with actual DICOM files (e.g., from `e2e/fixtures/` or your own test data)
 - Verify both single files and folder uploads
 - Check console for errors/warnings
 - Test on Chrome (primary) and Firefox

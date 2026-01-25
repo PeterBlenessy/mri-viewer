@@ -92,7 +92,7 @@ describe('settingsStore', () => {
     it('should persist theme to localStorage', () => {
       useSettingsStore.getState().setTheme('light')
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.theme).toBe('light')
     })
   })
@@ -113,7 +113,7 @@ describe('settingsStore', () => {
     it('should persist scroll direction to localStorage', () => {
       useSettingsStore.getState().setScrollDirection('inverted')
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.scrollDirection).toBe('inverted')
     })
   })
@@ -135,7 +135,7 @@ describe('settingsStore', () => {
       useSettingsStore.getState().setWindowLevelSensitivity(2.5)
       useSettingsStore.getState().setZoomSensitivity(0.15)
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.windowLevelSensitivity).toBe(2.5)
       expect(saved.zoomSensitivity).toBe(0.15)
     })
@@ -179,7 +179,7 @@ describe('settingsStore', () => {
     it('should persist privacy settings to localStorage', () => {
       useSettingsStore.getState().setHidePersonalInfo(false)
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.hidePersonalInfo).toBe(false)
     })
   })
@@ -198,7 +198,7 @@ describe('settingsStore', () => {
     it('should persist data persistence setting to localStorage', () => {
       useSettingsStore.getState().setPersistStudies(false)
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.persistStudies).toBe(false)
     })
   })
@@ -236,7 +236,7 @@ describe('settingsStore', () => {
       useSettingsStore.getState().setTheme('light')
       useSettingsStore.getState().resetToDefaults()
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.theme).toBe('dark')
       expect(saved.hidePersonalInfo).toBe(true)
     })
@@ -246,7 +246,7 @@ describe('settingsStore', () => {
     it('should load settings from localStorage on initialization', () => {
       // Set custom settings in localStorage
       localStorage.setItem(
-        'mri-viewer-settings',
+        'openscans-settings',
         JSON.stringify({
           theme: 'light',
           scrollDirection: 'inverted',
@@ -264,7 +264,7 @@ describe('settingsStore', () => {
       useSettingsStore.getState().setScrollDirection('inverted')
       useSettingsStore.getState().setWindowLevelSensitivity(2.0)
 
-      const saved = JSON.parse(localStorage.getItem('mri-viewer-settings') || '{}')
+      const saved = JSON.parse(localStorage.getItem('openscans-settings') || '{}')
       expect(saved.theme).toBe('light')
       expect(saved.scrollDirection).toBe('inverted')
       expect(saved.windowLevelSensitivity).toBe(2.0)

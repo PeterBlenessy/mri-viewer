@@ -3,7 +3,7 @@
  * Allows persisting directory references across page reloads
  */
 
-const DB_NAME = 'mri-viewer-directory-handles'
+const DB_NAME = 'openscans-directory-handles'
 const DB_VERSION = 1
 const STORE_NAME = 'directory-handles'
 

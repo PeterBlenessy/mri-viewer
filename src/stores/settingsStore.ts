@@ -28,7 +28,7 @@ export interface SettingsState {
   resetToDefaults: () => void
 }
 
-const STORAGE_KEY = 'mri-viewer-settings'
+const STORAGE_KEY = 'openscans-settings'
 
 const defaultSettings = {
   theme: 'dark' as Theme,

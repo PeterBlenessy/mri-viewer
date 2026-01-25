@@ -1013,4 +1013,4 @@ async function handleBatchExport() {
 
 ---
 
-**Questions or issues?** Open an issue at https://github.com/yourusername/MRI-viewer/issues
+**Questions or issues?** Open an issue at https://github.com/PeterBlenessy/openscans/issues

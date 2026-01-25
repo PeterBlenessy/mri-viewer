@@ -20,7 +20,7 @@ interface RecentStudiesState {
   clearRecentStudies: () => void
 }
 
-const STORAGE_KEY = 'mri-viewer-recent-studies'
+const STORAGE_KEY = 'openscans-recent-studies'
 
 function loadRecentStudies(): RecentStudyEntry[] {
   try {

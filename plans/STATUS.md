@@ -298,7 +298,7 @@ None
 
 ### Development Server
 ```bash
-cd /Users/peter/Development/MRI-viewer
+cd /Users/peter/Development/OpenScans
 pnpm dev
 ```
 
