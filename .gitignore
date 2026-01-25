@@ -31,6 +31,8 @@ coverage/
 # DICOM data (medical imaging files - do not commit patient data)
 MR-data/
 *.dcm
+# Exception: Allow anonymized test DICOM files in e2e fixtures (use with caution)
+!e2e/fixtures/*.dcm
 
 # Claude project files
 .claude/

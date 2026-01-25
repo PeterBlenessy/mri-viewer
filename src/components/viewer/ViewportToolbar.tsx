@@ -85,6 +85,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       <ToolbarButton
         onClick={resetSettings}
         title="Reset all (R)"
+        data-testid="reset-button"
         icon={
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
@@ -109,6 +110,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       <ToolbarButton
         onClick={handleZoomIn}
         title="Zoom in (+)"
+        data-testid="zoom-in-button"
         icon={
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path d="M9 6a.75.75 0 01.75.75v1.5h1.5a.75.75 0 010 1.5h-1.5v1.5a.75.75 0 01-1.5 0v-1.5h-1.5a.75.75 0 010-1.5h1.5v-1.5A.75.75 0 019 6z" />
@@ -121,6 +123,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       <ToolbarButton
         onClick={handleZoomOut}
         title="Zoom out (-)"
+        data-testid="zoom-out-button"
         icon={
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path d="M6.75 8.25a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-4.5z" />
@@ -198,6 +201,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
         onClick={handleToggleFavorite}
         title={isCurrentFavorite ? "Remove from favorites" : "Add to favorites"}
         disabled={!currentInstance}
+        data-testid="favorite-button"
         className={`p-2 rounded transition-colors ${
           !currentInstance
             ? 'text-gray-600 cursor-not-allowed'
@@ -220,6 +224,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
         onClick={onExportClick || (() => {})}
         title="Export image (E)"
         disabled={!currentInstance}
+        data-testid="export-button"
         icon={
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
@@ -237,14 +242,16 @@ interface ToolbarButtonProps {
   icon: React.ReactNode
   active?: boolean
   disabled?: boolean
+  'data-testid'?: string
 }
 
-function ToolbarButton({ onClick, title, icon, active = false, disabled = false }: ToolbarButtonProps) {
+function ToolbarButton({ onClick, title, icon, active = false, disabled = false, 'data-testid': testId }: ToolbarButtonProps) {
   return (
     <button
       onClick={onClick}
       title={title}
       disabled={disabled}
+      data-testid={testId}
       className={`p-2 rounded transition-colors ${
         disabled
           ? 'text-gray-600 cursor-not-allowed'

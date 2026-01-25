@@ -174,6 +174,7 @@ function App() {
             onClick={() => setHidePersonalInfo(!hidePersonalInfo)}
             className={`p-2 rounded transition-colors ${hidePersonalInfo ? (theme === 'dark' ? 'bg-[#2a2a2a] text-white' : 'bg-gray-300 text-gray-900') : (theme === 'dark' ? 'hover:bg-[#1a1a1a] text-gray-500' : 'hover:bg-gray-200 text-gray-400')}`}
             title={hidePersonalInfo ? 'Show Personal Information' : 'Hide Personal Information'}
+            data-testid="privacy-toggle"
           >
             {hidePersonalInfo ? <ShieldCheck size={18} /> : <ShieldOff size={18} />}
           </button>
@@ -234,6 +235,7 @@ function App() {
                         useStudyStore.getState().setCurrentInstance(newIndex)
                       }}
                       className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer slider ${theme === 'dark' ? 'bg-[#0f0f0f]' : 'bg-gray-200'}`}
+                      data-testid="instance-slider"
                       style={{
                         background: theme === 'dark'
                           ? `linear-gradient(to right, #4a4a4a 0%, #4a4a4a ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f ${(currentInstanceIndex / (currentSeries.instances.length - 1)) * 100}%, #0f0f0f 100%)`

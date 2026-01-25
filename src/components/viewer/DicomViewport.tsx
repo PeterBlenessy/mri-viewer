@@ -539,6 +539,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
     <div className={`bg-black ${className} relative`}>
       <div
         ref={canvasRef}
+        data-testid="viewport"
         className="w-full h-full bg-black"
         style={{
           cursor: isDragging ? 'crosshair' : isPanning ? 'grabbing' : isModifierKeyPressed ? 'grab' : 'crosshair',

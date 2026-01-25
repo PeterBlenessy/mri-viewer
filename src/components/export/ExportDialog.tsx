@@ -230,12 +230,14 @@ export function ExportDialog({ show, onClose, viewportElement }: ExportDialogPro
                   checked={includePatientName}
                   onChange={setIncludePatientName}
                   isDark={isDark}
+                  data-testid="include-patient-name"
                 />
                 <MetadataCheckbox
                   label="Include Patient ID"
                   checked={includePatientID}
                   onChange={setIncludePatientID}
                   isDark={isDark}
+                  data-testid="include-patient-id"
                 />
                 <MetadataCheckbox
                   label="Include Study Description"
@@ -283,6 +285,7 @@ export function ExportDialog({ show, onClose, viewportElement }: ExportDialogPro
           <button
             onClick={handleExport}
             disabled={isExporting || !currentInstance}
+            data-testid="export-confirm-button"
             className={`px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${isDark ? 'bg-[#2a2a2a] hover:bg-[#3a3a3a]' : 'bg-gray-700 hover:bg-gray-800'}`}
           >
             {isExporting ? (
@@ -391,9 +394,10 @@ interface MetadataCheckboxProps {
   checked: boolean
   onChange: (checked: boolean) => void
   isDark: boolean
+  'data-testid'?: string
 }
 
-function MetadataCheckbox({ label, checked, onChange, isDark }: MetadataCheckboxProps) {
+function MetadataCheckbox({ label, checked, onChange, isDark, 'data-testid': testId }: MetadataCheckboxProps) {
   return (
     <label className="flex items-center gap-3 cursor-pointer">
       <input
@@ -401,6 +405,7 @@ function MetadataCheckbox({ label, checked, onChange, isDark }: MetadataCheckbox
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="w-4 h-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"
+        data-testid={testId}
       />
       <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{label}</span>
     </label>

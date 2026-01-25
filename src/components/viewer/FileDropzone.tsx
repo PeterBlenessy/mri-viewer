@@ -241,6 +241,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
               onChange={handleFileSelect}
               className="hidden"
               disabled={combinedLoading}
+              data-testid="file-input"
             />
           </label>
 
