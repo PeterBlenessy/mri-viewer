@@ -13,7 +13,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Default port for web mode is 3001
+    // Tauri dev will override to 5173 via CLI flag
+    port: 3001,
     // Only auto-open browser in pure web mode, not when Tauri launches it
     open: !process.env.TAURI_ENV_PLATFORM,
     watch: {
