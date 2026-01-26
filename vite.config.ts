@@ -13,8 +13,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
-    open: true,
+    port: 5173,
+    // Only auto-open browser in pure web mode, not when Tauri launches it
+    open: !process.env.TAURI_ENV_PLATFORM,
     watch: {
       ignored: ['**/node_modules/**'],
     },
