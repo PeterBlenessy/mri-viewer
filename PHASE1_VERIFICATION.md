@@ -75,7 +75,10 @@ pnpm build:desktop
 
 ## ⚠️ Issues Resolved
 
-1. **Port Mismatch**: Vite was on port 3001, Tauri expected 5173 → Fixed
+1. **Port Configuration**: Separated ports to avoid conflicts
+   - Web mode: port 3001 (original)
+   - Desktop mode: port 5173 (Tauri)
+   - Added `dev:tauri` script for Tauri-specific Vite server
 2. **Rust Version**: Required 1.88.0, had 1.87.0 → Updated to 1.93.0
 3. **Browser Auto-Open**: Chrome opened in dev mode → Fixed with conditional `open`
 
