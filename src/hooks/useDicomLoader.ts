@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { parseDicomFiles } from '@/lib/dicom/parser'
 import { useStudyStore } from '@/stores/studyStore'
+import { cacheStudies } from '@/lib/storage/studyCache'
 
 export function useDicomLoader() {
   const [isLoading, setIsLoading] = useState(false)
@@ -21,6 +22,11 @@ export function useDicomLoader() {
       }
 
       setStudies(studies)
+
+      // Cache the parsed studies if we have a folderPath (desktop mode)
+      if (folderPath) {
+        cacheStudies(folderPath, studies)
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load DICOM files'
       console.error('Error loading DICOM files:', err)

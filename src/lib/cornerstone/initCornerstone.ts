@@ -2,6 +2,7 @@ import * as cornerstone from 'cornerstone-core'
 import * as cornerstoneTools from 'cornerstone-tools'
 import cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader'
 import dicomParser from 'dicom-parser'
+import { isTauri } from '../utils/platform'
 
 let isInitialized = false
 
@@ -19,21 +20,53 @@ export async function initCornerstone(): Promise<void> {
     cornerstoneWADOImageLoader.external.cornerstone = cornerstone
     cornerstoneWADOImageLoader.external.dicomParser = dicomParser
 
-    // Configure web workers for high-quality decoding and better performance
-    // Use hardware concurrency to determine optimal worker count
-    const maxWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1) // Reserve 1 core for main thread
-    const config = {
-      maxWebWorkers: maxWorkers,
-      startWebWorkersOnDemand: true, // Start workers only when needed
-      taskConfiguration: {
-        decodeTask: {
-          initializeCodecsOnStartup: true, // Initialize codecs for faster first load
-          strict: true, // Strict decoding in workers too
-        },
-      },
-    }
+    // Detect if running in Tauri (desktop mode)
+    const isDesktop = isTauri()
+    console.log(`[Cornerstone] Platform detection: Desktop=${isDesktop}, __TAURI_INTERNALS__=${'__TAURI_INTERNALS__' in window}, __TAURI__=${'__TAURI__' in window}`)
 
-    cornerstoneWADOImageLoader.webWorkerManager.initialize(config)
+    // Configure web workers for high-quality decoding and better performance
+    // Use a direct path to the worker file to avoid blob URL issues in Tauri
+    let workersEnabled = false
+    try {
+      // Use hardware concurrency to determine optimal worker count
+      const maxWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1) // Reserve 1 core for main thread
+
+      // Configure worker path before initialization
+      // This avoids blob URLs which don't work reliably in Tauri
+      const config = {
+        maxWebWorkers: maxWorkers,
+        startWebWorkersOnDemand: true,
+        webWorkerPath: isDesktop
+          ? '/cornerstoneWADOImageLoaderWebWorker.js'  // Direct path for Tauri
+          : undefined, // Let it use default blob URLs in browser
+        taskConfiguration: {
+          decodeTask: {
+            initializeCodecsOnStartup: false, // Don't initialize immediately
+            strict: true,
+          },
+        },
+      }
+
+      cornerstoneWADOImageLoader.webWorkerManager.initialize(config)
+      workersEnabled = true
+      console.log(`[Cornerstone] Initialized with ${maxWorkers} web workers (Desktop: ${isDesktop})`)
+      console.log(`[Cornerstone] Worker configuration:`, config)
+
+      // Test if workers are actually working
+      setTimeout(() => {
+        try {
+          const stats = (cornerstoneWADOImageLoader.webWorkerManager as any).getStatistics?.()
+          if (stats) {
+            console.log(`[Cornerstone] Worker statistics:`, stats)
+          }
+        } catch (err) {
+          // Ignore if getStatistics doesn't exist
+        }
+      }, 5000)
+    } catch (err) {
+      console.warn('[Cornerstone] Web workers initialization failed, using main thread decoding:', err)
+      workersEnabled = false
+    }
 
     // Configure Cornerstone image cache for better performance
     // This prevents flickering when navigating through images
@@ -49,14 +82,16 @@ export async function initCornerstone(): Promise<void> {
       beforeSend: function(xhr: any) {
         // No need for authentication for local files
       },
-      strict: true, // Strict mode: reject lossy formats when lossless expected
-      useWebWorkers: true, // Enable web workers for better performance
+      strict: false, // Don't fail on DICOM spec violations
+      useWebWorkers: workersEnabled, // Use workers if they initialized successfully
       decodeConfig: {
         // Preserve maximum precision for medical imaging
         convertFloatPixelDataToInt: false, // Keep full floating-point precision
         usePDFJS: false, // Don't use PDF.js for DICOM decoding
       },
     })
+
+    console.log(`[Cornerstone] Image loader configured - workers: ${workersEnabled}`)
 
 
     // Make cornerstone available globally for debugging

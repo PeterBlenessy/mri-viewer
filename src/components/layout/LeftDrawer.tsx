@@ -9,6 +9,7 @@ import {
   readDicomFilesWithDirectories,
 } from '@/lib/storage/directoryHandleStorage'
 import { parseDicomFilesWithDirectories } from '@/lib/dicom/parser'
+import { getCachedStudies, cacheStudies } from '@/lib/storage/studyCache'
 
 interface LeftDrawerProps {
   isOpen: boolean
@@ -35,41 +36,72 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
   const [isLoading, setIsLoading] = useState(false)
 
   const handleStudyClick = async (entry: RecentStudyEntry) => {
+    console.log(`[LeftDrawer] Clicked study: ${entry.studyInstanceUID}, current studies in store: ${studies.length}`)
+
     // Check if this study is still loaded
     const study = studies.find((s) => s.studyInstanceUID === entry.studyInstanceUID)
     if (study) {
+      console.log(`[LeftDrawer] ⚡ Study already in store, switching instantly!`)
       setCurrentStudy(study.studyInstanceUID)
       return
     }
 
+    console.log(`[LeftDrawer] Study not in store, need to reload`)
+
     // Try to reload from folderPath (desktop mode) or directoryHandleId (web mode)
     if (entry.folderPath) {
-      // Desktop mode - reload from folder path
+      // Desktop mode - check cache first to avoid re-reading files
+      const cachedStudies = getCachedStudies(entry.folderPath)
+
+      if (cachedStudies) {
+        console.log(`[LeftDrawer] ⚡ Loading ${cachedStudies.length} studies from cache (instant!)`)
+        setStudies(cachedStudies)
+
+        // Find and set the current study
+        const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === entry.studyInstanceUID)
+        if (targetStudy) {
+          setCurrentStudy(targetStudy.studyInstanceUID)
+        } else {
+          setCurrentStudy(cachedStudies[0].studyInstanceUID)
+        }
+        return
+      }
+
+      // Not in cache - reload from folder path
       try {
         setIsLoading(true)
+        const startTime = performance.now()
 
         // Import platform-specific file utilities
         const { readFilesFromDirectory } = await import('@/lib/utils/filePicker')
         const { parseDicomFiles } = await import('@/lib/dicom/parser')
 
         // Read all files from the folder path
+        const readStart = performance.now()
         const allFiles = await readFilesFromDirectory(entry.folderPath)
+        const readTime = performance.now() - readStart
+
         if (allFiles.length === 0) {
           alert('No DICOM files found in the folder.')
           return
         }
 
         // Parse and load the files
+        const parseStart = performance.now()
         const loadedStudies = await parseDicomFiles(allFiles, entry.folderPath)
+        const parseTime = performance.now() - parseStart
+
         if (loadedStudies.length === 0) {
           alert('No valid DICOM studies found in the folder.')
           return
         }
 
+        const totalTime = performance.now() - startTime
+        console.log(`[LeftDrawer] Recent study reload: read=${readTime.toFixed(0)}ms, parse=${parseTime.toFixed(0)}ms, total=${totalTime.toFixed(0)}ms`)
         console.log(`[LeftDrawer] Loaded ${loadedStudies.length} studies from folder path`)
-        loadedStudies.forEach((study, idx) => {
-          console.log(`[LeftDrawer] Study ${idx + 1}: ${study.series.length} series, ${study.series.reduce((sum, s) => sum + s.instances.length, 0)} images`)
-        })
+
+        // Cache the parsed studies for future use
+        cacheStudies(entry.folderPath, loadedStudies)
 
         // Set ALL the studies from this directory
         setStudies(loadedStudies)
@@ -91,7 +123,24 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
         setIsLoading(false)
       }
     } else if (entry.directoryHandleId) {
-      // Web mode - reload from directory handle
+      // Web mode - check cache first
+      const cachedStudies = getCachedStudies(entry.directoryHandleId)
+
+      if (cachedStudies) {
+        console.log(`[LeftDrawer] ⚡ Loading ${cachedStudies.length} studies from cache (instant!)`)
+        setStudies(cachedStudies)
+
+        // Find and set the current study
+        const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === entry.studyInstanceUID)
+        if (targetStudy) {
+          setCurrentStudy(targetStudy.studyInstanceUID)
+        } else {
+          setCurrentStudy(cachedStudies[0].studyInstanceUID)
+        }
+        return
+      }
+
+      // Not in cache - reload from directory handle
       try {
         setIsLoading(true)
 
@@ -130,9 +179,9 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
         }
 
         console.log(`[LeftDrawer] Loaded ${loadedStudies.length} studies from directory`)
-        loadedStudies.forEach((study, idx) => {
-          console.log(`[LeftDrawer] Study ${idx + 1}: ${study.series.length} series, ${study.series.reduce((sum, s) => sum + s.instances.length, 0)} images`)
-        })
+
+        // Cache the parsed studies for future use
+        cacheStudies(entry.directoryHandleId, loadedStudies)
 
         // Set ALL the studies from this directory
         setStudies(loadedStudies)

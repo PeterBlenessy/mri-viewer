@@ -67,9 +67,12 @@ export async function readFilesFromDirectory(
 ): Promise<File[]> {
   if (typeof source === 'string') {
     // Tauri mode - use FS plugin (much faster than Rust IPC)
+    const startTime = performance.now()
     const { readDir, readFile } = await import('@tauri-apps/plugin-fs')
 
     const files: File[] = []
+    let fileReadTime = 0
+    let blobCreateTime = 0
 
     async function readDirRecursive(dirPath: string) {
       try {
@@ -84,14 +87,22 @@ export async function readFilesFromDirectory(
           } else if (entry.isFile) {
             try {
               // Read file content
+              const readStart = performance.now()
               const content = await readFile(fullPath)
+              fileReadTime += performance.now() - readStart
+
               // Convert Uint8Array to File object
+              const blobStart = performance.now()
               const blob = new Blob([content])
               const file = new File([blob], entry.name, { type: 'application/dicom' })
+              blobCreateTime += performance.now() - blobStart
               files.push(file)
             } catch (err) {
               // Skip files that can't be read (permissions, etc)
-              console.debug(`Skipped file ${fullPath}:`, err)
+              // Don't log common system files like .DS_Store
+              if (!entry.name.startsWith('.')) {
+                console.debug(`Skipped file ${fullPath}:`, err)
+              }
             }
           }
         }
@@ -102,9 +113,16 @@ export async function readFilesFromDirectory(
     }
 
     await readDirRecursive(source)
+    const totalTime = performance.now() - startTime
+    console.log(`[Tauri] File reading performance:`)
+    console.log(`  - Total files: ${files.length}`)
+    console.log(`  - File read time: ${fileReadTime.toFixed(0)}ms`)
+    console.log(`  - Blob creation time: ${blobCreateTime.toFixed(0)}ms`)
+    console.log(`  - Total time: ${totalTime.toFixed(0)}ms`)
     return files
   } else {
     // Web mode - source is FileSystemDirectoryHandle
+    const startTime = performance.now()
     const files: File[] = []
 
     async function readDirRecursive(dirHandle: FileSystemDirectoryHandle) {
@@ -120,6 +138,10 @@ export async function readFilesFromDirectory(
     }
 
     await readDirRecursive(source)
+    const totalTime = performance.now() - startTime
+    console.log(`[Web] File reading performance:`)
+    console.log(`  - Total files: ${files.length}`)
+    console.log(`  - Total time: ${totalTime.toFixed(0)}ms`)
     return files
   }
 }

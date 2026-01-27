@@ -8,22 +8,33 @@ import { FileWithDirectory, saveDirectoryHandle } from '../storage/directoryHand
  * @param folderPath Optional folder path for desktop mode (Tauri)
  */
 export async function parseDicomFiles(files: File[], folderPath?: string): Promise<DicomStudy[]> {
+  const startTime = performance.now()
   const instances: Array<{
     file: File
     dataset: any
     metadata: DicomMetadata
   }> = []
 
+  let arrayBufferTime = 0
+  let parsingTime = 0
+  let metadataTime = 0
+
   // Parse all files
   for (const file of files) {
     try {
+      const bufferStart = performance.now()
       const arrayBuffer = await file.arrayBuffer()
       const byteArray = new Uint8Array(arrayBuffer)
+      arrayBufferTime += performance.now() - bufferStart
 
       // Parse DICOM file using dicom-parser
+      const parseStart = performance.now()
       const dataSet = dicomParser.parseDicom(byteArray)
+      parsingTime += performance.now() - parseStart
 
+      const metaStart = performance.now()
       const metadata = extractMetadata(dataSet)
+      metadataTime += performance.now() - metaStart
 
       // Only include files with pixel data (actual images)
       // Skip DICOMDIR and other non-image DICOM files
@@ -48,7 +59,9 @@ export async function parseDicomFiles(files: File[], folderPath?: string): Promi
   }
 
   // Organize into studies and series
+  const organizeStart = performance.now()
   const studies = organizeDicomData(instances)
+  const organizeTime = performance.now() - organizeStart
 
   // If folderPath is provided (desktop mode), assign it to all studies
   if (folderPath) {
@@ -56,6 +69,15 @@ export async function parseDicomFiles(files: File[], folderPath?: string): Promi
       study.folderPath = folderPath
     })
   }
+
+  const totalTime = performance.now() - startTime
+  console.log(`[DICOM Parser] Performance:`)
+  console.log(`  - Files processed: ${files.length}`)
+  console.log(`  - ArrayBuffer time: ${arrayBufferTime.toFixed(0)}ms`)
+  console.log(`  - Parsing time: ${parsingTime.toFixed(0)}ms`)
+  console.log(`  - Metadata extraction: ${metadataTime.toFixed(0)}ms`)
+  console.log(`  - Organization time: ${organizeTime.toFixed(0)}ms`)
+  console.log(`  - Total time: ${totalTime.toFixed(0)}ms`)
 
   return studies
 }
@@ -174,10 +196,14 @@ function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
     }
   }
 
-  const getNumber = (tag: string, defaultValue: number = 0): number => {
+  const getNumber = (tag: string, defaultValue?: number): number | undefined => {
     try {
       const value = dataSet.string(tag)
-      return value ? Number(value) : defaultValue
+      if (value) {
+        const numValue = Number(value)
+        return !isNaN(numValue) ? numValue : defaultValue
+      }
+      return defaultValue
     } catch {
       return defaultValue
     }
@@ -219,6 +245,17 @@ function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
     }
   }
 
+  // Extract pixel value range from DICOM tags for better rendering performance
+  // These tags help Cornerstone avoid recalculating min/max on every render
+  const minPixelValue = getNumber('x00280106', undefined) // SmallestImagePixelValue (0028,0106)
+  const maxPixelValue = getNumber('x00280107', undefined) // LargestImagePixelValue (0028,0107)
+
+  // Log if pixel values are missing (diagnostic)
+  if (minPixelValue === undefined || maxPixelValue === undefined) {
+    // These are optional tags, but their absence impacts performance
+    // Most DICOM files should have these for optimal rendering
+  }
+
   return {
     patientName: getStringLocal('x00100010', 'Unknown'),
     patientID: getStringLocal('x00100020', 'Unknown'),
@@ -237,6 +274,8 @@ function extractMetadata(dataSet: dicomParser.DataSet): DicomMetadata {
     modality,
     rows: getNumber('x00280010', 0),
     columns: getNumber('x00280011', 0),
+    minPixelValue,
+    maxPixelValue,
   }
 }
 

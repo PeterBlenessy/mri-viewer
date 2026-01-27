@@ -13,7 +13,9 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prepare": "node scripts/copy-workers.js",
+    "postinstall": "node scripts/copy-workers.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

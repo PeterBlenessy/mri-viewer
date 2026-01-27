@@ -43,6 +43,8 @@ export interface DicomMetadata {
   windowWidth?: number
   sliceLocation?: number
   sliceThickness?: number
+  minPixelValue?: number
+  maxPixelValue?: number
 }
 
 // Viewport types
