@@ -295,10 +295,11 @@ async def startup_event():
 # Main entry point
 if __name__ == "__main__":
     # Run server
+    # Note: Pass app object directly for PyInstaller compatibility
     uvicorn.run(
-        "main:app",
+        app,  # Pass app object, not "main:app" string
         host=HOST,
         port=PORT,
-        reload=DEBUG,  # Auto-reload in debug mode
+        reload=False,  # Cannot use reload with PyInstaller
         log_level="debug" if DEBUG else "info"
     )
