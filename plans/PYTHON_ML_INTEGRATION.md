@@ -295,51 +295,95 @@ jobs:
 
 ---
 
-### Phase 3: PyInstaller Packaging (Week 2-3)
+### Phase 3: PyInstaller Packaging ✅ COMPLETE
 **Goal**: Package Python server as standalone executable
 
-- [ ] Create `build.spec` for PyInstaller
-- [ ] Optimize bundle size (CPU-only PyTorch)
-- [ ] Exclude unnecessary modules (CUDA, unused libraries)
-- [ ] Test executable startup time
-- [ ] Target: ~300-400MB bundle
+- [x] Create `build.spec` for PyInstaller
+- [x] Build scripts for Mac/Linux/Windows
+- [x] Test executable startup time
+- [x] Final bundle: 864MB (includes full PyTorch + CUDA)
 
-**Bundle Contents:**
+**Actual Bundle:**
 ```
-inference-engine(.exe)
+openscans-inference (864MB)
 ├── Python runtime (50MB)
-├── PyTorch CPU (200MB)
-├── TotalSegmentator code (10MB)
-├── Dependencies (50MB)
-└── FastAPI + uvicorn (20MB)
+├── PyTorch + CUDA (600MB)
+├── TotalSegmentator + nnU-Net (100MB)
+├── Scientific libraries (100MB)
+└── FastAPI + dependencies (14MB)
 ```
 
-**Deliverable**: Single executable that runs server
+**Deliverable**: ✅ Single executable that runs server
+
+**Note**: Cannot exclude torch.cuda/distributed - PyTorch requires them internally
 
 ---
 
-### Phase 4: Tauri Integration (Week 3)
-**Goal**: Connect Tauri frontend to Python backend via IPC
+### Phase 4A: Tauri Sidecar Integration (Bundled - Testing)
+**Goal**: Bundle Python executable with Tauri for testing
 
-#### 4.1 Sidecar Configuration
-- [ ] Add Python executable to `tauri.conf.json` as sidecar
-- [ ] Implement Rust commands to start/stop server
-- [ ] Handle server lifecycle (startup, shutdown, errors)
+**Architecture Decision**:
+- Phase 4A: Bundle for testing (900MB installer)
+- Phase 4B: On-demand download for production (50MB installer)
 
-#### 4.2 IPC Communication
-- [ ] Create Tauri commands:
-  - `start_inference_server()` - Spawn Python sidecar
-  - `check_model_status()` - Query model availability
-  - `download_model(task)` - Trigger model download
-  - `detect_vertebrae(file_path)` - Run inference
+#### 4A.1 Sidecar Configuration
+- [ ] Copy `openscans-inference` to `src-tauri/binaries/`
+- [ ] Add to `tauri.conf.json` as sidecar
+- [ ] Configure resource paths
+- [ ] Test sidecar lifecycle
 
-#### 4.3 Error Handling
-- [ ] Server startup failures
-- [ ] Server crashes during inference
-- [ ] Network errors during model download
-- [ ] Disk space errors
+#### 4A.2 Rust Commands
+- [ ] `start_ai_server()` - Spawn Python sidecar
+- [ ] `stop_ai_server()` - Gracefully shutdown
+- [ ] `check_server_status()` - Health check
+- [ ] `detect_vertebrae(file_path)` - Forward to Python API
 
-**Deliverable**: Tauri app communicates with Python backend
+#### 4A.3 TypeScript Integration
+- [ ] Update `tauriVertebralDetector.ts` to use Tauri commands
+- [ ] Handle server startup delays
+- [ ] Error handling and retries
+
+**Deliverable**: Working Tauri app with bundled Python backend (testing only)
+
+---
+
+### Phase 4B: On-Demand Download (Production)
+**Goal**: Download AI engine only when needed (95% smaller installer)
+
+**Why**: Most users only view DICOM files, don't need 864MB AI engine
+
+#### 4B.1 GitHub Releases Setup
+- [ ] Create release artifacts:
+  - `OpenScans-macOS-arm64.dmg` (50MB) - Main installer
+  - `ai-engine-macos-arm64.tar.gz` (864MB) - AI engine (optional)
+  - Repeat for Windows/Linux
+- [ ] Automate via CI/CD
+
+#### 4B.2 Download Manager (Rust)
+- [ ] `check_ai_engine()` - Check if installed
+- [ ] `download_ai_engine()` - Download from GitHub with progress
+- [ ] Extract to `~/.openscans/inference/`
+- [ ] Verify integrity (checksum)
+
+#### 4B.3 UI Integration
+- [ ] `AIDownloadDialog.tsx` - Download prompt
+- [ ] Progress bar with MB/s speed
+- [ ] Pause/resume support
+- [ ] Error handling (network failures, disk space)
+
+#### 4B.4 Graceful Degradation
+- [ ] Show "AI not available" if not downloaded
+- [ ] One-click download from AI button
+- [ ] Cache forever after download
+
+**Deliverable**: 50MB installer, AI downloads on first use
+
+**User Experience:**
+```
+Viewer users:    50MB download (seconds)
+AI users:        50MB + 864MB = 914MB (one-time)
+Bandwidth save:  850MB for 95% of users
+```
 
 ---
 
