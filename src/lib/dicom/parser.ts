@@ -2,12 +2,13 @@ import * as dicomParser from 'dicom-parser'
 import { DicomStudy, DicomInstance, DicomMetadata } from '@/types'
 import { createImageId } from '../cornerstone/initCornerstone'
 import { FileWithDirectory, saveDirectoryHandle } from '../storage/directoryHandleStorage'
+import { FileWithPath } from '../utils/filePicker'
 
 /**
  * Parse DICOM files and organize them into studies and series
  * @param folderPath Optional folder path for desktop mode (Tauri)
  */
-export async function parseDicomFiles(files: File[], folderPath?: string): Promise<DicomStudy[]> {
+export async function parseDicomFiles(files: FileWithPath[], folderPath?: string): Promise<DicomStudy[]> {
   const startTime = performance.now()
   const instances: Array<{
     file: File
@@ -330,6 +331,7 @@ function organizeDicomData(
       rows: Number(metadata.rows || 0),
       columns: Number(metadata.columns || 0),
       metadata,
+      filePath: file.path, // Preserve original file path (Tauri only)
     }
 
     series.instances.push(instance)
@@ -408,6 +410,7 @@ async function organizeDicomDataWithDirectories(
       rows: Number(metadata.rows || 0),
       columns: Number(metadata.columns || 0),
       metadata,
+      filePath: file.path, // Preserve original file path (Tauri only)
     }
 
     series.instances.push(instance)

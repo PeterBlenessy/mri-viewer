@@ -25,6 +25,7 @@ export interface DicomInstance {
   rows: number
   columns: number
   metadata?: DicomMetadata
+  filePath?: string // Original file path (Tauri desktop mode only, for AI detection)
 }
 
 export interface DicomMetadata {

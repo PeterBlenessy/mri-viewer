@@ -54,7 +54,6 @@ a = Analysis(
         'totalsegmentator',
         'torch',
         'nibabel',
-        'pydicom',
         'SimpleITK',
         'numpy',
         'scipy',
@@ -73,6 +72,7 @@ a = Analysis(
         # Additional hidden imports
         *collect_submodules('uvicorn'),
         *collect_submodules('totalsegmentator'),
+        *collect_submodules('pydicom'),  # Collect ALL pydicom submodules
     ],
     hookspath=[],
     hooksconfig={},

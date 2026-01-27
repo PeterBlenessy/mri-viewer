@@ -6,7 +6,7 @@ python-multipart==0.0.20
 
 # Medical imaging
 totalsegmentator==2.2.1
-pydicom==2.4.4
+pydicom>=3.0.1  # Required for pixels module
 nibabel==5.2.0
 SimpleITK==2.5.3
 

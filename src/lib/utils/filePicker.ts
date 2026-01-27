@@ -57,14 +57,21 @@ export async function pickDirectory(): Promise<FileSystemDirectoryHandle | strin
 }
 
 /**
+ * File with path information (for Tauri mode)
+ */
+export interface FileWithPath extends File {
+  path?: string
+}
+
+/**
  * Read all files from a directory (recursive)
  *
  * @param source Directory handle (web) or directory path (Tauri)
- * @returns Array of File objects
+ * @returns Array of File objects (with path property in Tauri mode)
  */
 export async function readFilesFromDirectory(
   source: FileSystemDirectoryHandle | string
-): Promise<File[]> {
+): Promise<FileWithPath[]> {
   if (typeof source === 'string') {
     // Tauri mode - use FS plugin (much faster than Rust IPC)
     const startTime = performance.now()
@@ -94,7 +101,9 @@ export async function readFilesFromDirectory(
               // Convert Uint8Array to File object
               const blobStart = performance.now()
               const blob = new Blob([content])
-              const file = new File([blob], entry.name, { type: 'application/dicom' })
+              const file = new File([blob], entry.name, { type: 'application/dicom' }) as FileWithPath
+              // Attach the original file path for Tauri AI detection
+              file.path = fullPath
               blobCreateTime += performance.now() - blobStart
               files.push(file)
             } catch (err) {

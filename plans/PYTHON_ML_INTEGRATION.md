@@ -319,7 +319,7 @@ openscans-inference (864MB)
 
 ---
 
-### Phase 4A: Tauri Sidecar Integration (Bundled - Testing) ✅ MOSTLY COMPLETE
+### Phase 4A: Tauri Sidecar Integration (Bundled - Testing) ✅ COMPLETE
 **Goal**: Bundle Python executable with Tauri for testing
 
 **Architecture Decision**:
@@ -340,14 +340,19 @@ openscans-inference (864MB)
 - [x] `detect_vertebrae(file_path)` - Forward to Python API
 - [x] Updated for Tauri v2 API compatibility
 
-#### 4A.3 TypeScript Integration ⏳ PENDING
-- [ ] Create `tauriVertebralDetector.ts` to use Tauri commands
-- [ ] Handle server startup delays
-- [ ] Error handling and retries
-- [ ] Update detector factory to use Tauri detector in desktop mode
+#### 4A.3 TypeScript Integration ✅ COMPLETE
+- [x] Create `tauriVertebralDetector.ts` to use Tauri commands
+- [x] Create `detectorFactory.ts` for platform-based detector selection
+- [x] Update `ViewportToolbar.tsx` to use detector factory
+- [x] Handle server startup delays (10s wait + health check)
+- [x] Error handling and retries
+- [x] Platform detection via `isTauri()` utility
 
-**Deliverable**: ✅ Working Rust backend with Python sidecar (verified)
-⏳ Frontend integration pending
+**Deliverable**: ✅ Working desktop app with bundled Python backend
+- Tauri app starts AI server automatically on launch
+- Frontend detects platform and uses appropriate detector
+- Real TotalSegmentator AI available in desktop mode
+- Mock detector used in web mode
 
 ---
 

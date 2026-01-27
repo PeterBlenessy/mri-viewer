@@ -2,7 +2,7 @@ import { useViewportStore } from '@/stores/viewportStore'
 import { useStudyStore } from '@/stores/studyStore'
 import { useFavoritesStore, FavoriteImage } from '@/stores/favoritesStore'
 import { useAnnotationStore } from '@/stores/annotationStore'
-import { mockDetector } from '@/lib/ai/mockVertebralDetector'
+import { getDetector, isRealAI } from '@/lib/ai/detectorFactory'
 
 interface ViewportToolbarProps {
   className?: string
@@ -91,13 +91,26 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
     try {
       setDetecting(true)
       deleteAnnotationsForInstance(currentInstance.sopInstanceUID, true)
-      const result = await mockDetector.detectVertebrae(currentInstance)
+
+      // Get appropriate detector based on platform
+      const detector = getDetector()
+      const detectorType = isRealAI() ? 'TotalSegmentator' : 'Mock'
+
+      console.log(`[AI Detection] Using ${detectorType} detector`)
+
+      const result = await detector.detectVertebrae(currentInstance)
       addAnnotations(result.annotations)
-      console.log(`AI detection completed in ${result.processingTimeMs.toFixed(0)}ms with ${result.confidence.toFixed(2)} confidence`)
+
+      console.log(
+        `[AI Detection] ${detectorType} completed in ${result.processingTimeMs.toFixed(0)}ms ` +
+        `with ${(result.confidence * 100).toFixed(1)}% confidence. ` +
+        `Found ${result.annotations.length} vertebrae.`
+      )
+
       setDetecting(false)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('AI detection failed:', error)
+      console.error('[AI Detection] Failed:', error)
       setDetecting(false, errorMessage)
     }
   }

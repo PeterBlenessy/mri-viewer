@@ -32,11 +32,13 @@
 - [x] Error handling for all commands
 - [x] Updated to use Tauri v2 API (std::process::Command)
 
-### 4A.3 Frontend Integration
-- [ ] Update `tauriVertebralDetector.ts`
-- [ ] Handle server startup delays
-- [ ] Show loading states
-- [ ] Error messages for failures
+### 4A.3 Frontend Integration ✅ COMPLETE
+- [x] Create `tauriVertebralDetector.ts` - Tauri-based detector
+- [x] Create `detectorFactory.ts` - Platform-based detector selection
+- [x] Update `ViewportToolbar.tsx` to use detector factory
+- [x] Handle server startup delays (10s wait + health check)
+- [x] Show loading states (isDetecting flag)
+- [x] Error messages for failures (try-catch with error display)
 
 ### 4A.4 Testing ✅ PARTIAL
 - [x] Sidecar starts on app launch
@@ -150,12 +152,11 @@ open src-tauri/target/release/bundle/dmg/OpenScans_*.dmg
 
 - [x] **4A.1** Sidecar configuration ✅
 - [x] **4A.2** Rust IPC commands ✅
-- [ ] **4A.3** Frontend integration
-- [x] **4A.4** Testing (partial - backend working) ✅
+- [x] **4A.3** Frontend integration ✅
+- [x] **4A.4** Testing (integration complete) ✅
 
 ### Deliverable
-✅ Working Rust backend with Python sidecar
-⏳ Frontend integration pending
+✅ **COMPLETE**: Working desktop app with bundled AI engine (testing architecture)
 
 ### Key Implementation Details
 
