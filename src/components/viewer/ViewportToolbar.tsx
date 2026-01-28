@@ -114,9 +114,17 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       setDetecting(true)
       deleteAnnotationsForInstance(currentInstance.sopInstanceUID, true)
       const result = await detector.detectVertebrae(currentInstance)
+      console.log(`[ViewportToolbar] Adding ${result.annotations.length} annotations for sopInstanceUID: ${currentInstance.sopInstanceUID}`)
+      console.log(`[ViewportToolbar] First annotation:`, result.annotations[0])
       addAnnotations(result.annotations)
       console.log(`AI detection completed in ${result.processingTimeMs.toFixed(0)}ms with ${result.confidence.toFixed(2)} confidence`)
       console.log(`Detected ${result.annotations.length} vertebrae`)
+
+      // Debug: check if annotations are in store
+      const storedAnnotations = useAnnotationStore.getState().annotations
+      console.log(`[ViewportToolbar] Total annotations in store: ${storedAnnotations.length}`)
+      console.log(`[ViewportToolbar] Annotations for this instance:`, storedAnnotations.filter(a => a.sopInstanceUID === currentInstance.sopInstanceUID))
+
       setDetecting(false)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'

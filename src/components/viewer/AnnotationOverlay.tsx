@@ -38,13 +38,21 @@ export function AnnotationOverlay({ canvasElement }: AnnotationOverlayProps) {
 
   // Get annotations for current instance
   const annotations = useMemo(() => {
-    if (!currentInstance || !showAnnotations) return []
-    return getAnnotationsForInstance(currentInstance.sopInstanceUID)
+    if (!currentInstance || !showAnnotations) {
+      console.log('[AnnotationOverlay] Not showing annotations:', { hasInstance: !!currentInstance, showAnnotations })
+      return []
+    }
+    const anns = getAnnotationsForInstance(currentInstance.sopInstanceUID)
+    console.log(`[AnnotationOverlay] Found ${anns.length} annotations for sopInstanceUID: ${currentInstance.sopInstanceUID}`)
+    return anns
   }, [currentInstance, showAnnotations, getAnnotationsForInstance])
 
   if (!canvasElement || !currentInstance || !showAnnotations || annotations.length === 0) {
+    console.log('[AnnotationOverlay] Not rendering:', { canvasElement: !!canvasElement, currentInstance: !!currentInstance, showAnnotations, annotationsCount: annotations.length })
     return null
   }
+
+  console.log(`[AnnotationOverlay] Rendering ${annotations.length} annotations with scale ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`)
 
   // Calculate scale factors from image coordinates to viewport coordinates
   const scaleX = dimensions.width / currentInstance.columns
