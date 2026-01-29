@@ -1,5 +1,6 @@
 import { DicomInstance } from '@/types'
 import { MarkerAnnotation } from '@/types/annotation'
+import { AiAnalysis } from '@/stores/aiAnalysisStore'
 
 /**
  * Result of an AI vertebral detection run
@@ -25,13 +26,22 @@ export interface VertebraResponse {
 }
 
 /**
- * Common interface for all vision-based vertebral detectors.
+ * Result of a generic radiology analysis run
+ */
+export interface AnalysisResult {
+  analysis: AiAnalysis
+  processingTimeMs: number
+}
+
+/**
+ * Common interface for all vision-based detectors.
  * Implementations: ClaudeVisionDetector, GeminiVisionDetector, MockVertebralDetector
  */
 export interface VisionDetector {
   setApiKey(apiKey: string): void
   isConfigured(): boolean
   detectVertebrae(instance: DicomInstance): Promise<DetectionResult>
+  analyzeImage(instance: DicomInstance): Promise<AnalysisResult>
 }
 
 /**

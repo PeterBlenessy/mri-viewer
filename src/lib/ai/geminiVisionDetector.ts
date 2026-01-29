@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai'
 import { DicomInstance } from '@/types'
 import { MarkerAnnotation } from '@/types/annotation'
-import { DetectionResult, VisionDetector, VertebraResponse } from './types'
+import { DetectionResult, AnalysisResult, VisionDetector, VertebraResponse } from './types'
+import { AiAnalysis } from '@/stores/aiAnalysisStore'
 import { dicomToBase64Png } from './dicomImageUtils'
 
 /**
@@ -234,6 +235,132 @@ Rules:
     } catch (error) {
       console.error('[GeminiDetector] Detection failed:', error)
       throw new Error(`Gemini Vision detection failed: ${error}`)
+    }
+  }
+
+  /**
+   * Extract plain text from Gemini's multi-part agentic response.
+   * Concatenates all text parts, ignoring code execution parts.
+   */
+  private extractTextFromResponse(response: { text?: string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }): string {
+    // Try the simple .text accessor first
+    if (response.text) {
+      return response.text
+    }
+
+    // Parse through candidates
+    const candidates = response.candidates || []
+    const textParts: string[] = []
+
+    for (const candidate of candidates) {
+      const parts = candidate.content?.parts || []
+      for (const part of parts) {
+        if (part.text) {
+          textParts.push(part.text)
+        }
+      }
+    }
+
+    return textParts.join('\n\n')
+  }
+
+  /**
+   * Perform generic radiology analysis using Gemini Vision with Agentic Vision.
+   * Uses code execution so Gemini can measure, annotate, and reason about the image
+   * before producing its final analysis text.
+   */
+  async analyzeImage(instance: DicomInstance): Promise<AnalysisResult> {
+    const startTime = performance.now()
+
+    if (!this.isConfigured()) {
+      throw new Error('Gemini Vision detector not configured. Please set API key in settings.')
+    }
+
+    try {
+      // Convert DICOM to base64 PNG
+      const { data: imageData } = await dicomToBase64Png()
+
+      // Call Gemini API with code execution for agentic vision analysis
+      const response = await this.client!.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'image/png',
+                  data: imageData,
+                },
+              },
+              {
+                text: `You are an experienced expert radiologist analyzing a medical imaging scan.
+
+You may use code execution to enhance your analysis — for example, to measure distances, analyze pixel intensity distributions, compute contrast ratios, or annotate regions of interest on the image for closer inspection.
+
+Please provide a comprehensive analysis of this medical image, including:
+
+1. **Image Type & Quality**: What type of scan is this (MRI, CT, X-ray, etc.)? Comment on image quality and any technical factors that may affect interpretation.
+
+2. **Anatomical Structures**: Identify the key anatomical structures visible in the image. What body region and orientation is shown?
+
+3. **Normal Findings**: Describe any normal anatomical features that are clearly visible.
+
+4. **Abnormal Findings**: Identify any abnormalities, lesions, fractures, misalignments, or other pathological features. Be specific about location, size, and characteristics.
+
+5. **Clinical Significance**: What is the potential clinical significance of your findings? Are there any urgent or concerning features?
+
+6. **Recommendations**: Suggest any follow-up imaging, clinical correlation, or additional views that might be helpful.
+
+IMPORTANT:
+- Be thorough but concise
+- Use clear medical terminology but explain complex terms
+- Note any limitations in your analysis
+- If you're uncertain about any findings, explicitly state this
+- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context
+
+Please provide your analysis in a clear, structured format.`,
+              },
+            ],
+          },
+        ],
+        config: {
+          tools: [{ codeExecution: {} }],
+          temperature: 0.0,
+          maxOutputTokens: 4096,
+        },
+      })
+
+      // Extract the analysis text from potentially multi-part response
+      const analysisText = this.extractTextFromResponse(response as { text?: string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })
+
+      if (!analysisText || analysisText.trim().length === 0) {
+        throw new Error('Gemini returned an empty analysis')
+      }
+
+      const analysis: AiAnalysis = {
+        id: `ai-analysis-${instance.sopInstanceUID}-${Date.now()}`,
+        sopInstanceUID: instance.sopInstanceUID,
+        instanceNumber: instance.instanceNumber,
+        findings: analysisText,
+        createdAt: new Date().toISOString(),
+        createdBy: 'Gemini-3-Flash',
+        modelVersion: 'gemini-2.0-flash',
+      }
+
+      const processingTimeMs = performance.now() - startTime
+
+      console.log(
+        `[GeminiDetector] Generated radiology analysis in ${processingTimeMs.toFixed(0)}ms`
+      )
+
+      return {
+        analysis,
+        processingTimeMs,
+      }
+    } catch (error) {
+      console.error('[GeminiDetector] Analysis failed:', error)
+      throw new Error(`Gemini Vision analysis failed: ${error}`)
     }
   }
 }
