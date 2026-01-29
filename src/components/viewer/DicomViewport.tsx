@@ -5,7 +5,10 @@ import { initCornerstone, cornerstone } from '@/lib/cornerstone/initCornerstone'
 import { ViewportToolbar } from './ViewportToolbar'
 import { ExportDialog } from '@/components/export/ExportDialog'
 import { AnnotationOverlay } from './AnnotationOverlay'
+import { AiAnalysisModal } from './AiAnalysisModal'
 import { useAnnotationStore } from '@/stores/annotationStore'
+import { useAiAnalysisStore } from '@/stores/aiAnalysisStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { mockDetector } from '@/lib/ai/mockVertebralDetector'
 
 interface DicomViewportProps {
@@ -43,6 +46,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
   const setDetecting = useViewportStore((state) => state.setDetecting)
   const addAnnotations = useAnnotationStore.getState().addAnnotations
   const deleteAnnotationsForInstance = useAnnotationStore.getState().deleteAnnotationsForInstance
+  const isAnalyzing = useAiAnalysisStore((state) => state.isAnalyzing)
+  const addAnalysis = useAiAnalysisStore.getState().addAnalysis
+  const setAnalyzing = useAiAnalysisStore.getState().setAnalyzing
 
   // When current image changes, update the DICOM reset target
   // W/L is per-image in DICOM, so each image can have different optimal values
@@ -161,10 +167,19 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
 
       // AI detection keyboard shortcut (M)
       if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
-        if (currentInstance && !isDetecting) {
+        if (currentInstance && !isDetecting && !isAnalyzing) {
           e.preventDefault()
           // Trigger AI detection
           handleAiDetection()
+        }
+      }
+
+      // AI analysis keyboard shortcut (N)
+      if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+        if (currentInstance && !isDetecting && !isAnalyzing) {
+          e.preventDefault()
+          // Trigger AI analysis
+          handleAiAnalysis()
         }
       }
     }
@@ -192,6 +207,32 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       }
     }
 
+    const handleAiAnalysis = async () => {
+      if (!currentInstance || isAnalyzing) return
+
+      // Require Claude configuration for analysis
+      const aiSettings = useSettingsStore.getState()
+      if (!aiSettings.aiEnabled || aiSettings.aiProvider !== 'claude') {
+        alert('Please configure Claude AI in settings to use radiology analysis.')
+        return
+      }
+
+      try {
+        setAnalyzing(true)
+        // Import dynamically to avoid circular dependency
+        const { claudeDetector } = await import('@/lib/ai/claudeVisionDetector')
+        const result = await claudeDetector.analyzeImage(currentInstance)
+        addAnalysis(result.analysis)
+        console.log(`AI analysis completed in ${result.processingTimeMs.toFixed(0)}ms`)
+        setAnalyzing(false)
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('AI analysis failed:', error)
+        alert(`AI analysis failed: ${errorMessage}`)
+        setAnalyzing(false)
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
@@ -199,7 +240,7 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [currentInstance, isDetecting, setDetecting, addAnnotations, deleteAnnotationsForInstance])
+  }, [currentInstance, isDetecting, isAnalyzing, setDetecting, setAnalyzing, addAnnotations, addAnalysis, deleteAnnotationsForInstance])
 
   // Load and display image
   useEffect(() => {
@@ -597,6 +638,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         viewportElement={canvasRef.current}
       />
 
+      {/* AI Analysis Modal */}
+      <AiAnalysisModal />
+
       {/* AI Detection Status */}
       {isDetecting && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -615,6 +659,20 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-black/70 text-white px-6 py-3 rounded-lg shadow-xl">
             Detection failed: {detectionError}
+          </div>
+        </div>
+      )}
+
+      {/* AI Analysis Status */}
+      {isAnalyzing && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/70 text-white px-6 py-3 rounded-lg shadow-xl">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 animate-spin">
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39z" clipRule="evenodd" />
+              </svg>
+              <span className="text-base">Analyzing image...</span>
+            </div>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { DicomInstance } from '@/types'
 import { MarkerAnnotation } from '@/types/annotation'
 import { DetectionResult } from './mockVertebralDetector'
+import { AiAnalysis } from '@/stores/aiAnalysisStore'
 import cornerstone from 'cornerstone-core'
 
 /**
@@ -16,6 +17,14 @@ interface ClaudeVertebraResponse {
     }
     confidence: number
   }>
+}
+
+/**
+ * Generic radiology analysis result
+ */
+export interface AnalysisResult {
+  analysis: AiAnalysis
+  processingTimeMs: number
 }
 
 /**
@@ -347,6 +356,103 @@ If no vertebrae are visible, return: {"vertebrae": []}`,
     } catch (error) {
       console.error('[ClaudeDetector] Detection failed:', error)
       throw new Error(`Claude Vision detection failed: ${error}`)
+    }
+  }
+
+  /**
+   * Perform generic radiology analysis using Claude Vision API
+   * Returns a comprehensive analysis of the medical image
+   */
+  async analyzeImage(instance: DicomInstance): Promise<AnalysisResult> {
+    const startTime = performance.now()
+
+    if (!this.isConfigured()) {
+      throw new Error('Claude Vision detector not configured. Please set API key in settings.')
+    }
+
+    try {
+      // Convert DICOM to base64 PNG and get dimensions
+      const { data: imageData, canvasWidth, canvasHeight, imageColumns, imageRows } = await this.dicomToBase64Png()
+
+      // Call Claude API with a more open-ended prompt
+      const message = await this.client!.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        temperature: 0.0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/png',
+                  data: imageData,
+                },
+              },
+              {
+                type: 'text',
+                text: `You are an experienced expert radiologist analyzing a medical imaging scan.
+
+Please provide a comprehensive analysis of this medical image, including:
+
+1. **Image Type & Quality**: What type of scan is this (MRI, CT, X-ray, etc.)? Comment on image quality and any technical factors that may affect interpretation.
+
+2. **Anatomical Structures**: Identify the key anatomical structures visible in the image. What body region and orientation is shown?
+
+3. **Normal Findings**: Describe any normal anatomical features that are clearly visible.
+
+4. **Abnormal Findings**: Identify any abnormalities, lesions, fractures, misalignments, or other pathological features. Be specific about location, size, and characteristics.
+
+5. **Clinical Significance**: What is the potential clinical significance of your findings? Are there any urgent or concerning features?
+
+6. **Recommendations**: Suggest any follow-up imaging, clinical correlation, or additional views that might be helpful.
+
+IMPORTANT:
+- Be thorough but concise
+- Use clear medical terminology but explain complex terms
+- Note any limitations in your analysis
+- If you're uncertain about any findings, explicitly state this
+- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context
+
+Please provide your analysis in a clear, structured format.`,
+              },
+            ],
+          },
+        ],
+      })
+
+      // Extract the analysis text
+      const analysisText = message.content[0].type === 'text' ? message.content[0].text : ''
+
+      if (!analysisText || analysisText.trim().length === 0) {
+        throw new Error('Claude returned an empty analysis')
+      }
+
+      const analysis: AiAnalysis = {
+        id: `ai-analysis-${instance.sopInstanceUID}-${Date.now()}`,
+        sopInstanceUID: instance.sopInstanceUID,
+        instanceNumber: instance.instanceNumber,
+        findings: analysisText,
+        createdAt: new Date().toISOString(),
+        createdBy: 'Claude-Sonnet-4.5',
+        modelVersion: 'claude-sonnet-4-5',
+      }
+
+      const processingTimeMs = performance.now() - startTime
+
+      console.log(
+        `[ClaudeDetector] Generated radiology analysis in ${processingTimeMs.toFixed(0)}ms`
+      )
+
+      return {
+        analysis,
+        processingTimeMs,
+      }
+    } catch (error) {
+      console.error('[ClaudeDetector] Analysis failed:', error)
+      throw new Error(`Claude Vision analysis failed: ${error}`)
     }
   }
 }
