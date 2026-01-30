@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useFavoritesStore, FavoriteImage } from '@/stores/favoritesStore'
 import { useStudyStore } from '@/stores/studyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useAiAnalysisStore } from '@/stores/aiAnalysisStore'
 import { cornerstone } from '@/lib/cornerstone/initCornerstone'
 import { BatchExportDialog } from './BatchExportDialog'
 import { formatSeriesDescription } from '@/lib/utils/formatSeriesDescription'
@@ -12,6 +13,8 @@ export function FavoritesPanel() {
   const favorites = useFavoritesStore((state) => state.favorites)
   const removeFavorite = useFavoritesStore((state) => state.removeFavorite)
   const clearAllFavorites = useFavoritesStore((state) => state.clearAllFavorites)
+  const analyses = useAiAnalysisStore((state) => state.analyses)
+  const studies = useStudyStore((state) => state.studies)
   const setCurrentSeries = useStudyStore((state) => state.setCurrentSeries)
   const setCurrentInstance = useStudyStore((state) => state.setCurrentInstance)
   const currentInstance = useStudyStore((state) => state.currentInstance)
@@ -30,6 +33,44 @@ export function FavoritesPanel() {
   useEffect(() => {
     localStorage.setItem('favoritesViewMode', viewMode)
   }, [viewMode])
+
+  // Combine favorites and analyzed images into a unified list
+  // Include images from analyses that aren't already favorited
+  const allMarkedImages = useMemo(() => {
+    const markedImages = [...favorites]
+
+    // Add analyzed images that aren't already in favorites
+    analyses.forEach(analysis => {
+      const alreadyFavorited = favorites.some(f => f.sopInstanceUID === analysis.sopInstanceUID)
+      if (!alreadyFavorited) {
+        // Find the instance in the studies to get full metadata
+        for (const study of studies) {
+          for (const series of study.series) {
+            const instance = series.instances.find(i => i.sopInstanceUID === analysis.sopInstanceUID)
+            if (instance) {
+              markedImages.push({
+                sopInstanceUID: instance.sopInstanceUID,
+                studyInstanceUID: study.studyInstanceUID,
+                seriesInstanceUID: series.seriesInstanceUID,
+                instanceNumber: instance.instanceNumber,
+                imageId: instance.imageId,
+                patientName: instance.metadata?.patientName,
+                studyDate: instance.metadata?.studyDate,
+                seriesNumber: instance.metadata?.seriesNumber,
+                seriesDescription: instance.metadata?.seriesDescription,
+                modality: instance.metadata?.modality,
+                favoritedAt: new Date(analysis.createdAt).getTime(),
+              })
+              break
+            }
+          }
+        }
+      }
+    })
+
+    // Sort by date (most recent first)
+    return markedImages.sort((a, b) => b.favoritedAt - a.favoritedAt)
+  }, [favorites, analyses, studies])
 
   const handleFavoriteClick = (favorite: FavoriteImage) => {
     // Navigate to the series first
@@ -59,7 +100,7 @@ export function FavoritesPanel() {
     setShowClearConfirm(false)
   }
 
-  if (favorites.length === 0) {
+  if (allMarkedImages.length === 0) {
     return (
       <div className="text-center py-6">
         <svg
@@ -71,10 +112,10 @@ export function FavoritesPanel() {
           <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
         </svg>
         <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-          No favorites yet
+          No marked images yet
         </p>
         <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-500'}`}>
-          Click the star icon to add
+          Star or analyze images to see them here
         </p>
       </div>
     )
@@ -86,7 +127,7 @@ export function FavoritesPanel() {
         {/* Header with count and actions */}
         <div className="flex items-center justify-between mb-3">
           <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-            {favorites.length} {favorites.length === 1 ? 'image' : 'images'}
+            {allMarkedImages.length} {allMarkedImages.length === 1 ? 'image' : 'images'}
           </div>
           <div className="flex items-center gap-3">
             {/* View mode toggle */}
@@ -133,7 +174,7 @@ export function FavoritesPanel() {
         {/* Clear Confirmation */}
         {showClearConfirm && (
           <div className={`p-2 rounded text-xs mb-2 ${theme === 'dark' ? 'bg-red-900/20 border border-red-800/30' : 'bg-red-50 border border-red-200'}`}>
-            <p className={`mb-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>Clear all {favorites.length} favorites?</p>
+            <p className={`mb-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>Clear all {allMarkedImages.length} marked images?</p>
             <div className="flex gap-2">
               <button
                 onClick={handleClearAll}
@@ -151,10 +192,10 @@ export function FavoritesPanel() {
           </div>
         )}
 
-        {/* Favorites List - Text View */}
+        {/* Marked Images List - Text View */}
         {viewMode === 'text' && (
           <div className="space-y-1 max-h-64 overflow-y-auto">
-            {favorites.map((favorite) => {
+            {allMarkedImages.map((favorite) => {
               const isActive = currentInstance?.sopInstanceUID === favorite.sopInstanceUID
 
               return (
@@ -200,10 +241,10 @@ export function FavoritesPanel() {
           </div>
         )}
 
-        {/* Favorites List - Thumbnail View */}
+        {/* Marked Images List - Thumbnail View */}
         {viewMode === 'thumbnails' && (
           <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
-            {favorites.map((favorite) => (
+            {allMarkedImages.map((favorite) => (
               <FavoriteThumbnail
                 key={favorite.sopInstanceUID}
                 favorite={favorite}
@@ -221,7 +262,7 @@ export function FavoritesPanel() {
       <BatchExportDialog
         show={showBatchExport}
         onClose={() => setShowBatchExport(false)}
-        favorites={favorites}
+        favorites={allMarkedImages}
       />
     </>
   )

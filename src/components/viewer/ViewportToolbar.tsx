@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react'
+import { MonitorCog } from 'lucide-react'
 import { useViewportStore } from '@/stores/viewportStore'
 import { useStudyStore } from '@/stores/studyStore'
 import { useFavoritesStore, FavoriteImage } from '@/stores/favoritesStore'
@@ -22,8 +24,12 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
   const setFlipVertical = useViewportStore((state) => state.setFlipVertical)
   const setInvert = useViewportStore((state) => state.setInvert)
   const setZoom = useViewportStore((state) => state.setZoom)
+  const setWindowLevel = useViewportStore((state) => state.setWindowLevel)
   const isDetecting = useViewportStore((state) => state.isDetecting)
   const setDetecting = useViewportStore((state) => state.setDetecting)
+
+  const [showPresets, setShowPresets] = useState(false)
+  const presetsRef = useRef<HTMLDivElement>(null)
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentSeries = useStudyStore((state) => state.currentSeries)
@@ -139,6 +145,34 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       console.error('AI detection failed:', error)
       setDetecting(false, errorMessage)
     }
+  }
+
+  // Close presets dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (presetsRef.current && !presetsRef.current.contains(event.target as Node)) {
+        setShowPresets(false)
+      }
+    }
+
+    if (showPresets) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showPresets])
+
+  const windowPresets = [
+    { name: 'Soft Tissue', contrast: 400, brightness: 40 },
+    { name: 'Lung', contrast: 1500, brightness: -600 },
+    { name: 'Bone', contrast: 2500, brightness: 480 },
+    { name: 'Brain', contrast: 80, brightness: 40 },
+    { name: 'Liver', contrast: 150, brightness: 30 },
+    { name: 'Abdomen', contrast: 350, brightness: 40 },
+  ]
+
+  const handlePresetClick = (brightness: number, contrast: number) => {
+    setWindowLevel(brightness, contrast)
+    setShowPresets(false)
   }
 
   const handleAiAnalysis = async () => {
@@ -310,6 +344,59 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
           </svg>
         }
       />
+
+      {/* Window Presets Dropdown */}
+      <div className="relative" ref={presetsRef}>
+        <button
+          onClick={() => setShowPresets(!showPresets)}
+          title="Window presets"
+          disabled={!currentInstance}
+          className={`p-2 rounded transition-colors ${
+            !currentInstance
+              ? 'text-gray-600 cursor-not-allowed'
+              : 'text-gray-300 hover:bg-[#2a2a2a]'
+          }`}
+        >
+          <MonitorCog
+            size={16}
+            className={`${
+              !currentInstance
+                ? ''
+                : showPresets
+                ? 'text-blue-500'
+                : 'hover:text-blue-500'
+            }`}
+          />
+        </button>
+        {showPresets && (
+          <div className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl py-2 z-50 min-w-[200px]">
+            <div className="px-2 pb-1 mb-1 border-b border-[#2a2a2a]">
+              <p className="text-xs font-medium text-gray-400">Window Presets</p>
+            </div>
+            {windowPresets.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => handlePresetClick(preset.brightness, preset.contrast)}
+                className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#2a2a2a] hover:text-white transition-colors"
+              >
+                <div className="font-medium">{preset.name}</div>
+                <div className="text-xs text-gray-500">C:{preset.contrast} B:{preset.brightness}</div>
+              </button>
+            ))}
+            <div className="border-t border-[#2a2a2a] mt-1 pt-1 px-2">
+              <button
+                onClick={() => {
+                  resetSettings()
+                  setShowPresets(false)
+                }}
+                className="w-full px-2 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded transition-colors"
+              >
+                Reset to Default
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <ToolbarDivider />
 

@@ -15,6 +15,9 @@ export function AnnotationOverlay({ canvasElement }: AnnotationOverlayProps) {
   const showAnnotations = useViewportStore((state) => state.showAnnotations)
   const currentInstance = useStudyStore((state) => state.currentInstance)
   const allAnnotations = useAnnotationStore((state) => state.annotations)
+  const areMarkersVisible = useAnnotationStore((state) =>
+    currentInstance ? state.areMarkersVisible(currentInstance.sopInstanceUID) : true
+  )
 
   // Track canvas dimensions
   useEffect(() => {
@@ -37,11 +40,11 @@ export function AnnotationOverlay({ canvasElement }: AnnotationOverlayProps) {
     }
   }, [canvasElement])
 
-  // Get annotations for current instance
+  // Get annotations for current instance (only if markers are visible)
   const annotations = useMemo(() => {
-    if (!currentInstance || !showAnnotations) return []
+    if (!currentInstance || !showAnnotations || !areMarkersVisible) return []
     return allAnnotations.filter((ann) => ann.sopInstanceUID === currentInstance.sopInstanceUID)
-  }, [currentInstance, showAnnotations, allAnnotations])
+  }, [currentInstance, showAnnotations, areMarkersVisible, allAnnotations])
 
   if (!canvasElement || !currentInstance || !showAnnotations || annotations.length === 0) {
     return null

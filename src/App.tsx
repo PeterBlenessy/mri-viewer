@@ -6,7 +6,6 @@ import { StudySeriesBrowser } from './components/viewer/StudySeriesBrowser'
 import { ThumbnailStrip } from './components/viewer/ThumbnailStrip'
 import { KeyboardShortcutsHelp } from './components/viewer/KeyboardShortcutsHelp'
 import { HelpDialog } from './components/help/HelpDialog'
-import { ImagePresets } from './components/viewer/ImagePresets'
 import { FavoritesPanel } from './components/favorites/FavoritesPanel'
 import { LeftDrawer } from './components/layout/LeftDrawer'
 import { SettingsPanel } from './components/settings/SettingsPanel'
@@ -35,7 +34,6 @@ function App() {
   const theme = useSettingsStore((state) => state.theme)
   const hidePersonalInfo = useSettingsStore((state) => state.hidePersonalInfo)
   const setHidePersonalInfo = useSettingsStore((state) => state.setHidePersonalInfo)
-  const currentInstance = useStudyStore((state) => state.currentInstance)
   const currentSeries = useStudyStore((state) => state.currentSeries)
   const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
@@ -56,9 +54,7 @@ function App() {
     // Default values if nothing in localStorage
     return {
       studiesOpen: true,
-      presetsOpen: false,
-      favoritesOpen: true,
-      metadataOpen: true
+      favoritesOpen: true
     }
   })
 
@@ -280,29 +276,14 @@ function App() {
                 )}
               </div>
 
-              {/* Image Presets - Collapsible, Persistent */}
-              <div className={`border-b ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
-                <button
-                  onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, presetsOpen: !prev.presetsOpen }))}
-                  className={`w-full p-4 flex items-center justify-between transition-colors ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
-                >
-                  <h2 className="text-lg font-semibold">Image Presets</h2>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.presetsOpen ? '▼' : '▶'}</span>
-                </button>
-                {sectionState.presetsOpen && (
-                  <div className="px-4 pb-4">
-                    <ImagePresets />
-                  </div>
-                )}
-              </div>
-
-              {/* Favorites - Collapsible, Persistent */}
+              {/* Key Images - Collapsible, Persistent (includes favorites and AI-analyzed images) */}
+              {/* Suggested names: "Key Images" (medical standard), "Marked Images", "Selections", "Important Images" */}
               <div className={`border-b ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
                 <button
                   onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, favoritesOpen: !prev.favoritesOpen }))}
                   className={`w-full p-4 flex items-center justify-between transition-colors ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
                 >
-                  <h2 className="text-lg font-semibold">Favorites</h2>
+                  <h2 className="text-lg font-semibold">Key Images</h2>
                   <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.favoritesOpen ? '▼' : '▶'}</span>
                 </button>
                 {sectionState.favoritesOpen && (
@@ -312,56 +293,6 @@ function App() {
                 )}
               </div>
 
-              {/* Current Metadata - Collapsible, Persistent */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <button
-                  onClick={() => setSectionState((prev: typeof sectionState) => ({ ...prev, metadataOpen: !prev.metadataOpen }))}
-                  className={`w-full p-4 flex items-center justify-between transition-colors flex-shrink-0 ${theme === 'dark' ? 'hover:bg-[#0f0f0f]' : 'hover:bg-gray-50'}`}
-                >
-                  <h2 className="text-lg font-semibold">Current Image</h2>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>{sectionState.metadataOpen ? '▼' : '▶'}</span>
-                </button>
-                {sectionState.metadataOpen && (
-                  <div className="px-4 pb-4 flex-1 overflow-y-auto">
-                    {currentInstance?.metadata && (
-                      <div className="space-y-2 text-sm">
-                        {!hidePersonalInfo && (
-                          <>
-                            <div>
-                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Patient Name:</span>
-                              <p>{currentInstance.metadata.patientName}</p>
-                            </div>
-                            <div>
-                              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Patient ID:</span>
-                              <p>{currentInstance.metadata.patientID}</p>
-                            </div>
-                          </>
-                        )}
-                        <div>
-                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Study Date:</span>
-                          <p>{currentInstance.metadata.studyDate}</p>
-                        </div>
-                        <div>
-                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Series:</span>
-                          <p>{formatSeriesDescription(currentInstance.metadata.seriesDescription)}</p>
-                        </div>
-                        <div>
-                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Instance:</span>
-                          <p>{currentInstance.instanceNumber}</p>
-                        </div>
-                        <div>
-                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Brightness:</span>
-                          <p>{currentInstance.metadata.windowCenter}</p>
-                        </div>
-                        <div>
-                          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Contrast:</span>
-                          <p>{currentInstance.metadata.windowWidth}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
               </>
               )}
             </aside>

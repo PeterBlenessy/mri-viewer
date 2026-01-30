@@ -165,10 +165,10 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
                     // Show consent prompt
                     const consent = confirm(
                       'AI Detection Privacy Notice:\n\n' +
-                      'When enabled, DICOM images will be sent to external AI services (Claude, Gemini, or OpenAI API) for analysis. ' +
-                      'Images are sent without patient metadata, but the pixel data itself leaves your device.\n\n' +
+                      'When you explicitly use the AI analysis or detection features, DICOM images will be sent to external AI services (Claude, Gemini, or OpenAI API). ' +
+                      'Images are sent without patient metadata, but the pixel data itself leaves your device when you click the AI analysis button.\n\n' +
                       'This is NOT HIPAA-compliant by default. Only use with de-identified images or in non-clinical settings.\n\n' +
-                      'Do you consent to sending image data to external AI services?'
+                      'Do you consent to sending image data to external AI services when using AI features?'
                     )
                     if (consent) {
                       setAiConsentGiven(true)
@@ -281,7 +281,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
                     ⚠️ Privacy & Security Notice
                   </p>
                   <ul className="space-y-1 text-gray-500">
-                    <li>• Image pixel data is sent to external AI services</li>
+                    <li>• Image data is sent only when you click AI analysis buttons</li>
                     <li>• Patient metadata (names, IDs) is stripped before sending</li>
                     <li>• Cost: ~$0.004-0.01 per image analyzed</li>
                     <li>• API keys are stored locally (not encrypted)</li>
