@@ -173,8 +173,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('AI analysis failed:', error)
-      alert(`AI analysis failed: ${errorMessage}`)
-      setAnalyzing(false)
+      setAnalyzing(false, errorMessage)
     }
   }
 

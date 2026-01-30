@@ -4,6 +4,7 @@ import { MarkerAnnotation } from '@/types/annotation'
 import { DetectionResult, AnalysisResult, VisionDetector, VertebraResponse } from './types'
 import { AiAnalysis } from '@/stores/aiAnalysisStore'
 import { dicomToBase64Png } from './dicomImageUtils'
+import { parseApiError } from './errorHandler'
 
 /**
  * Gemini 3 Flash Vision detector with Agentic Vision (code execution).
@@ -233,8 +234,14 @@ Rules:
         processingTimeMs,
       }
     } catch (error) {
-      console.error('[GeminiDetector] Detection failed:', error)
-      throw new Error(`Gemini Vision detection failed: ${error}`)
+      const errorDetails = parseApiError(error, 'gemini')
+      console.error('[GeminiDetector] Detection failed:', errorDetails.message)
+
+      // Create a user-friendly error
+      const userError = new Error(errorDetails.userMessage)
+      // Attach error details for debugging
+      ;(userError as any).details = errorDetails
+      throw userError
     }
   }
 
@@ -359,8 +366,14 @@ Please provide your analysis in a clear, structured format.`,
         processingTimeMs,
       }
     } catch (error) {
-      console.error('[GeminiDetector] Analysis failed:', error)
-      throw new Error(`Gemini Vision analysis failed: ${error}`)
+      const errorDetails = parseApiError(error, 'gemini')
+      console.error('[GeminiDetector] Analysis failed:', errorDetails.message)
+
+      // Create a user-friendly error
+      const userError = new Error(errorDetails.userMessage)
+      // Attach error details for debugging
+      ;(userError as any).details = errorDetails
+      throw userError
     }
   }
 }

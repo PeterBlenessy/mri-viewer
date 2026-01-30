@@ -4,6 +4,7 @@ import { MarkerAnnotation } from '@/types/annotation'
 import { DetectionResult, AnalysisResult, VisionDetector } from './types'
 import { dicomToBase64Png, parseVertebraJson } from './dicomImageUtils'
 import { AiAnalysis } from '@/stores/aiAnalysisStore'
+import { parseApiError } from './errorHandler'
 
 /**
  * Claude Vision API-based vertebral detector
@@ -152,8 +153,14 @@ If no vertebrae are visible, return: {"vertebrae": []}`,
         processingTimeMs,
       }
     } catch (error) {
-      console.error('[ClaudeDetector] Detection failed:', error)
-      throw new Error(`Claude Vision detection failed: ${error}`)
+      const errorDetails = parseApiError(error, 'claude')
+      console.error('[ClaudeDetector] Detection failed:', errorDetails.message)
+
+      // Create a user-friendly error
+      const userError = new Error(errorDetails.userMessage)
+      // Attach error details for debugging
+      ;(userError as any).details = errorDetails
+      throw userError
     }
   }
 
@@ -249,8 +256,14 @@ Please provide your analysis in a clear, structured format.`,
         processingTimeMs,
       }
     } catch (error) {
-      console.error('[ClaudeDetector] Analysis failed:', error)
-      throw new Error(`Claude Vision analysis failed: ${error}`)
+      const errorDetails = parseApiError(error, 'claude')
+      console.error('[ClaudeDetector] Analysis failed:', errorDetails.message)
+
+      // Create a user-friendly error
+      const userError = new Error(errorDetails.userMessage)
+      // Attach error details for debugging
+      ;(userError as any).details = errorDetails
+      throw userError
     }
   }
 }
