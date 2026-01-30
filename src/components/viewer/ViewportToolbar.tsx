@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { mockDetector } from '@/lib/ai/mockVertebralDetector'
 import { claudeDetector } from '@/lib/ai/claudeVisionDetector'
 import { geminiDetector } from '@/lib/ai/geminiVisionDetector'
+import { openaiDetector } from '@/lib/ai/openaiVisionDetector'
 
 interface ViewportToolbarProps {
   className?: string
@@ -40,6 +41,7 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
   const aiProvider = useSettingsStore((state) => state.aiProvider)
   const aiApiKey = useSettingsStore((state) => state.aiApiKey)
   const geminiApiKey = useSettingsStore((state) => state.geminiApiKey)
+  const openaiApiKey = useSettingsStore((state) => state.openaiApiKey)
 
   // Initialize AI detectors with API keys
   if (aiEnabled && aiProvider === 'claude' && aiApiKey) {
@@ -47,6 +49,9 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
   }
   if (aiEnabled && aiProvider === 'gemini' && geminiApiKey) {
     geminiDetector.setApiKey(geminiApiKey)
+  }
+  if (aiEnabled && aiProvider === 'openai' && openaiApiKey) {
+    openaiDetector.setApiKey(openaiApiKey)
   }
 
   // Subscribe to favorites array to trigger re-render on changes
@@ -118,6 +123,8 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       detector = claudeDetector
     } else if (aiEnabled && aiProvider === 'gemini' && geminiDetector.isConfigured()) {
       detector = geminiDetector
+    } else if (aiEnabled && aiProvider === 'openai' && openaiDetector.isConfigured()) {
+      detector = openaiDetector
     }
 
     try {
@@ -164,10 +171,13 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
       analyzer = claudeDetector
     } else if (aiProvider === 'gemini' && geminiDetector.isConfigured()) {
       analyzer = geminiDetector
+    } else if (aiProvider === 'openai' && openaiDetector.isConfigured()) {
+      analyzer = openaiDetector
     }
 
     if (!analyzer) {
-      alert(`Please configure your ${aiProvider === 'claude' ? 'Anthropic' : 'Google AI'} API key in settings.`)
+      const providerNames: Record<string, string> = { claude: 'Anthropic', gemini: 'Google AI', openai: 'OpenAI' }
+      alert(`Please configure your ${providerNames[aiProvider] || aiProvider} API key in settings.`)
       return
     }
 

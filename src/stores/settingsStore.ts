@@ -24,6 +24,7 @@ export interface SettingsState {
   aiProvider: AIProvider // Which API to use
   aiApiKey: string // Claude API key (stored in localStorage - not secure for production)
   geminiApiKey: string // Gemini API key (stored separately so users can switch without re-entering)
+  openaiApiKey: string // OpenAI API key (stored separately so users can switch without re-entering)
   aiConsentGiven: boolean // User has consented to sending images to external API
 
   // Actions
@@ -37,6 +38,7 @@ export interface SettingsState {
   setAiProvider: (provider: AIProvider) => void
   setAiApiKey: (key: string) => void
   setGeminiApiKey: (key: string) => void
+  setOpenaiApiKey: (key: string) => void
   setAiConsentGiven: (consent: boolean) => void
   resetToDefaults: () => void
 }
@@ -54,6 +56,7 @@ const defaultSettings = {
   aiProvider: 'claude' as AIProvider,
   aiApiKey: '',
   geminiApiKey: '',
+  openaiApiKey: '',
   aiConsentGiven: false,
 }
 
@@ -147,6 +150,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setGeminiApiKey: (geminiApiKey) => {
       set({ geminiApiKey })
       saveSettings({ ...get(), geminiApiKey })
+    },
+
+    setOpenaiApiKey: (openaiApiKey) => {
+      set({ openaiApiKey })
+      saveSettings({ ...get(), openaiApiKey })
     },
 
     setAiConsentGiven: (aiConsentGiven) => {

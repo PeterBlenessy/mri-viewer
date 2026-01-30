@@ -13,7 +13,7 @@ export interface ApiErrorDetails {
 /**
  * Parse and convert API errors into user-friendly messages
  */
-export function parseApiError(error: unknown, provider: 'claude' | 'gemini'): ApiErrorDetails {
+export function parseApiError(error: unknown, provider: 'claude' | 'gemini' | 'openai'): ApiErrorDetails {
   // Default error details
   const defaultError: ApiErrorDetails = {
     message: 'Unknown error',
@@ -145,6 +145,70 @@ export function parseApiError(error: unknown, provider: 'claude' | 'gemini'): Ap
     }
   }
 
+  // Parse OpenAI-specific errors
+  if (provider === 'openai') {
+    // Quota/billing errors
+    if (errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('insufficient_quota')) {
+      return {
+        code: 429,
+        message: error.message,
+        userMessage: 'OpenAI API quota exceeded. Please check your API credits and billing.',
+        isRetryable: false,
+        action: 'Visit https://platform.openai.com/usage to check your API usage and billing',
+      }
+    }
+
+    // Authentication errors
+    if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('api key') || errorMessage.includes('invalid_api_key')) {
+      return {
+        code: 401,
+        message: error.message,
+        userMessage: 'Invalid API key. Please check your OpenAI API key in settings.',
+        isRetryable: false,
+        action: 'Go to Settings and verify your OpenAI API key',
+      }
+    }
+
+    // Rate limit
+    if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+      return {
+        code: 429,
+        message: error.message,
+        userMessage: 'Too many requests. Please wait a moment and try again.',
+        isRetryable: true,
+      }
+    }
+
+    // Model not available
+    if (errorMessage.includes('model') || errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+      return {
+        code: 404,
+        message: error.message,
+        userMessage: 'The AI model is temporarily unavailable. Please try again later.',
+        isRetryable: true,
+      }
+    }
+
+    // Content policy
+    if (errorMessage.includes('content_policy') || errorMessage.includes('safety') || errorMessage.includes('blocked')) {
+      return {
+        message: error.message,
+        userMessage: 'The AI could not process this image due to content policy restrictions.',
+        isRetryable: false,
+      }
+    }
+
+    // Server errors
+    if (errorMessage.includes('server_error') || errorMessage.includes('500')) {
+      return {
+        code: 500,
+        message: error.message,
+        userMessage: 'OpenAI server error. Please try again in a few moments.',
+        isRetryable: true,
+      }
+    }
+  }
+
   // Generic response parsing errors
   if (errorMessage.includes('json') || errorMessage.includes('parse')) {
     return {
@@ -178,7 +242,7 @@ export function parseApiError(error: unknown, provider: 'claude' | 'gemini'): Ap
 /**
  * Format error for user display
  */
-export function formatErrorForUser(error: unknown, provider: 'claude' | 'gemini'): string {
+export function formatErrorForUser(error: unknown, provider: 'claude' | 'gemini' | 'openai'): string {
   const details = parseApiError(error, provider)
 
   let message = details.userMessage

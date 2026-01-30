@@ -35,7 +35,7 @@ export interface AnalysisResult {
 
 /**
  * Common interface for all vision-based detectors.
- * Implementations: ClaudeVisionDetector, GeminiVisionDetector, MockVertebralDetector
+ * Implementations: ClaudeVisionDetector, GeminiVisionDetector, OpenAIVisionDetector, MockVertebralDetector
  */
 export interface VisionDetector {
   setApiKey(apiKey: string): void
