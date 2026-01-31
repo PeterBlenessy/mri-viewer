@@ -1,6 +1,9 @@
 /**
  * In-memory cache for parsed DICOM studies
  * Prevents re-reading and re-parsing files when switching between studies from the same folder
+ *
+ * Note: Cannot use localStorage because DicomStudy objects contain File objects and
+ * blob URLs that are session-specific and cannot be serialized.
  */
 
 import { DicomStudy } from '@/types'
@@ -12,7 +15,11 @@ const cache = new Map<string, DicomStudy[]>()
  * Get cached studies for a folder/directory
  */
 export function getCachedStudies(key: string): DicomStudy[] | undefined {
-  return cache.get(key)
+  const cached = cache.get(key)
+  if (cached) {
+    console.log(`[StudyCache] ⚡ Cache hit for: ${key}`)
+  }
+  return cached
 }
 
 /**

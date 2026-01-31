@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PanelLeft, PanelRight, PanelBottom, ShieldCheck, ShieldOff } from 'lucide-react'
 import { FileDropzone } from './components/viewer/FileDropzone'
 import { DicomViewport } from './components/viewer/DicomViewport'
@@ -14,14 +14,24 @@ import { useRecentStudiesStore } from './stores/recentStudiesStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { formatSeriesDescription } from './lib/utils/formatSeriesDescription'
+import {
+  getDirectoryHandle,
+  checkDirectoryPermission,
+  requestDirectoryPermission,
+  readDicomFilesWithDirectories,
+} from './lib/storage/directoryHandleStorage'
+import { parseDicomFilesWithDirectories } from './lib/dicom/parser'
+import { getCachedStudies, cacheStudies } from './lib/storage/studyCache'
 
 function App() {
   // Force HMR update
-  const [showDropzone, setShowDropzone] = useState(true)
+  const [showDropzone, setShowDropzone] = useState(false) // Start false, will show after auto-load check
+  const [isAutoLoading, setIsAutoLoading] = useState(true) // Show loading state initially
   const [showHelp, setShowHelp] = useState(false)
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [hasProcessedStudies, setHasProcessedStudies] = useState(false)
+  const hasAttemptedAutoLoadRef = useRef(false)
 
   // Panel visibility state
   const [showLeftDrawer, setShowLeftDrawer] = useState(() => {
@@ -38,7 +48,10 @@ function App() {
   const currentStudy = useStudyStore((state) => state.currentStudy)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
   const studies = useStudyStore((state) => state.studies)
+  const setStudies = useStudyStore((state) => state.setStudies)
+  const setCurrentStudy = useStudyStore((state) => state.setCurrentStudy)
   const addRecentStudy = useRecentStudiesStore((state) => state.addRecentStudy)
+  const recentStudies = useRecentStudiesStore((state) => state.recentStudies)
 
   // Collapsible section state with localStorage persistence
   const [sectionState, setSectionState] = useState(() => {
@@ -73,12 +86,14 @@ function App() {
 
   const handleFilesLoaded = () => {
     setHasProcessedStudies(false) // Reset so we process the new studies
+    setIsAutoLoading(false)
     setShowDropzone(false)
   }
 
   // Auto-hide dropzone when studies are loaded (e.g., from recent studies reload)
   useEffect(() => {
     if (currentStudy) {
+      setIsAutoLoading(false)
       setShowDropzone(false)
     }
   }, [currentStudy])
@@ -110,6 +125,176 @@ function App() {
       setHasProcessedStudies(true)
     }
   }, [studies, hasProcessedStudies, addRecentStudy])
+
+  // Auto-load the most recent study on app startup
+  useEffect(() => {
+    // Only run once on mount (use ref to prevent double-execution in React Strict Mode)
+    if (hasAttemptedAutoLoadRef.current) return
+    hasAttemptedAutoLoadRef.current = true
+
+    // If there's already a current study loaded, we're done
+    if (currentStudy) {
+      setIsAutoLoading(false)
+      setShowDropzone(false)
+      return
+    }
+
+    // Check if there are recent studies
+    if (recentStudies.length === 0) {
+      setIsAutoLoading(false)
+      setShowDropzone(true)
+      return
+    }
+
+    // Get the most recent study (first in the list)
+    const mostRecent = recentStudies[0]
+    const startTime = performance.now()
+
+    // Load the study
+    const loadMostRecentStudy = async () => {
+      try {
+        // Try folderPath first (desktop mode)
+        if (mostRecent.folderPath) {
+          // Check cache first
+          const cachedStudies = getCachedStudies(mostRecent.folderPath)
+
+          if (cachedStudies) {
+            setStudies(cachedStudies)
+
+            const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+            if (targetStudy) {
+              setCurrentStudy(targetStudy.studyInstanceUID)
+            } else {
+              setCurrentStudy(cachedStudies[0].studyInstanceUID)
+            }
+            setIsAutoLoading(false)
+            setShowDropzone(false)
+            console.log(`[App] ⚡ Loaded from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
+            return
+          }
+
+          // Not in cache - reload from folder path
+          const { readFilesFromDirectory } = await import('@/lib/utils/filePicker')
+          const { parseDicomFiles } = await import('@/lib/dicom/parser')
+
+          const allFiles = await readFilesFromDirectory(mostRecent.folderPath)
+
+          if (allFiles.length === 0) {
+            console.log('[App] No files found in folder, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          const loadedStudies = await parseDicomFiles(allFiles, mostRecent.folderPath)
+
+          if (loadedStudies.length === 0) {
+            console.log('[App] No valid DICOM studies found, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          cacheStudies(mostRecent.folderPath, loadedStudies)
+          setStudies(loadedStudies)
+
+          const targetStudy = loadedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+          if (targetStudy) {
+            setCurrentStudy(targetStudy.studyInstanceUID)
+          } else {
+            setCurrentStudy(loadedStudies[0].studyInstanceUID)
+          }
+          setIsAutoLoading(false)
+          setShowDropzone(false)
+          console.log(`[App] Loaded ${loadedStudies.length} studies from disk in ${(performance.now() - startTime).toFixed(0)}ms`)
+          return
+        }
+
+        // Try directoryHandleId (web mode)
+        if (mostRecent.directoryHandleId) {
+          // Check cache first
+          const cachedStudies = getCachedStudies(mostRecent.directoryHandleId)
+
+          if (cachedStudies) {
+            setStudies(cachedStudies)
+
+            const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+            if (targetStudy) {
+              setCurrentStudy(targetStudy.studyInstanceUID)
+            } else {
+              setCurrentStudy(cachedStudies[0].studyInstanceUID)
+            }
+            setIsAutoLoading(false)
+            setShowDropzone(false)
+            console.log(`[App] ⚡ Loaded from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
+            return
+          }
+
+          // Not in cache - reload from directory handle
+          const dirHandle = await getDirectoryHandle(mostRecent.directoryHandleId)
+          if (!dirHandle) {
+            console.log('[App] Directory handle not found, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          // Check permission (don't request on startup, just check)
+          const hasPermission = await checkDirectoryPermission(dirHandle)
+          if (!hasPermission) {
+            console.log('[App] No permission to access directory, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          const filesWithDirs = await readDicomFilesWithDirectories(dirHandle)
+
+          if (filesWithDirs.length === 0) {
+            console.log('[App] No files found in directory, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          const loadedStudies = await parseDicomFilesWithDirectories(filesWithDirs, dirHandle)
+
+          if (loadedStudies.length === 0) {
+            console.log('[App] No valid DICOM studies found, showing dropzone')
+            setIsAutoLoading(false)
+            setShowDropzone(true)
+            return
+          }
+
+          cacheStudies(mostRecent.directoryHandleId, loadedStudies)
+          setStudies(loadedStudies)
+
+          const targetStudy = loadedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+          if (targetStudy) {
+            setCurrentStudy(targetStudy.studyInstanceUID)
+          } else {
+            setCurrentStudy(loadedStudies[0].studyInstanceUID)
+          }
+          setIsAutoLoading(false)
+          setShowDropzone(false)
+          console.log(`[App] Loaded ${loadedStudies.length} studies from disk in ${(performance.now() - startTime).toFixed(0)}ms`)
+          return
+        }
+
+        console.log('[App] No folder path or directory handle, showing dropzone')
+        setIsAutoLoading(false)
+        setShowDropzone(true)
+      } catch (error) {
+        console.error('[App] Failed to auto-load most recent study:', error)
+        // On error, just show the dropzone
+        setIsAutoLoading(false)
+        setShowDropzone(true)
+      }
+    }
+
+    loadMostRecentStudy()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className={`h-screen flex flex-col ${theme === 'dark' ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
@@ -207,7 +392,14 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 flex overflow-hidden relative">
-          {showDropzone ? (
+          {isAutoLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+                <p className="text-gray-400">Loading most recent study...</p>
+              </div>
+            </div>
+          ) : showDropzone ? (
             <div className="flex-1 flex items-center justify-center p-8">
               <FileDropzone
                 className="w-full max-w-2xl"
