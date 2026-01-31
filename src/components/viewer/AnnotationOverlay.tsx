@@ -4,6 +4,7 @@ import { useViewportStore } from '@/stores/viewportStore'
 import { useStudyStore } from '@/stores/studyStore'
 import { MarkerAnnotation } from '@/types/annotation'
 import { severityStyles } from '@/types/annotation'
+import { annotationColors } from '@/lib/colors'
 import cornerstone from 'cornerstone-core'
 
 interface AnnotationOverlayProps {
@@ -101,8 +102,11 @@ function MarkerRenderer({ annotation, canvasElement }: MarkerRendererProps) {
   const labelOffsetX = 12
   const labelOffsetY = 5
 
-  // Visual indicator: different border color for manually adjusted markers
-  const borderColor = annotation.manuallyAdjusted ? '#3b82f6' : style.color // blue for adjusted, original color otherwise
+  // Use orange for all markers
+  const markerColor = annotationColors.orange
+  // Fill opacity: solid when manually adjusted, transparent when automatic
+  const fillOpacity = annotation.manuallyAdjusted ? 0.8 : 0.15
+  const strokeWidth = 1.5
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -157,10 +161,10 @@ function MarkerRenderer({ annotation, canvasElement }: MarkerRendererProps) {
         cx={viewportX}
         cy={viewportY}
         r={radius}
-        fill={style.color}
-        fillOpacity={style.fillOpacity}
-        stroke={borderColor}
-        strokeWidth={annotation.manuallyAdjusted ? 3 : style.lineWidth}
+        fill={markerColor}
+        fillOpacity={fillOpacity}
+        stroke={markerColor}
+        strokeWidth={strokeWidth}
       />
 
       {/* Label */}
@@ -168,8 +172,8 @@ function MarkerRenderer({ annotation, canvasElement }: MarkerRendererProps) {
         <text
           x={viewportX + labelOffsetX}
           y={viewportY + labelOffsetY}
-          fill={style.color}
-          fontSize="14px"
+          fill={markerColor}
+          fontSize="12px"
           fontWeight="bold"
           fontFamily="sans-serif"
           style={{ pointerEvents: 'none', userSelect: 'none' }}

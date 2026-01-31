@@ -62,20 +62,9 @@ export interface AnnotationStyle {
   fillOpacity: number
 }
 
-export const severityStyles: Record<AnnotationSeverity, AnnotationStyle> = {
-  normal: {
-    color: '#10b981', // green
-    lineWidth: 2,
-    fillOpacity: 0.2,
-  },
-  warning: {
-    color: '#f59e0b', // yellow
-    lineWidth: 2,
-    fillOpacity: 0.2,
-  },
-  critical: {
-    color: '#ef4444', // red
-    lineWidth: 3,
-    fillOpacity: 0.3,
-  },
-}
+// Import standardized colors for medical imaging
+import { annotationStyles } from '@/lib/colors'
+
+// Re-export annotation styles with proper medical imaging colors
+// Cyan for normal (best visibility), amber for warnings, red for critical
+export const severityStyles: Record<AnnotationSeverity, AnnotationStyle> = annotationStyles

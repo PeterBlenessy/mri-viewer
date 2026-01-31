@@ -10,6 +10,7 @@ import { useAnnotationStore } from '@/stores/annotationStore'
 import { useAiAnalysisStore } from '@/stores/aiAnalysisStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { mockDetector } from '@/lib/ai/mockVertebralDetector'
+import { annotationColors } from '@/lib/colors'
 
 interface DicomViewportProps {
   className?: string
@@ -751,8 +752,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
             viewBox="0 0 20 20"
             fill="currentColor"
             className={`transition-all duration-300 ${
-              isDragging ? 'w-4 h-4 text-amber-400' : 'w-3 h-3 text-gray-500'
+              isDragging ? 'w-4 h-4' : 'w-3 h-3 text-gray-500'
             }`}
+            style={isDragging ? { color: annotationColors.yellow } : {}}
           >
             <path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" />
           </svg>
@@ -793,8 +795,9 @@ export function DicomViewport({ className = '' }: DicomViewportProps) {
             viewBox="0 0 20 20"
             fill="currentColor"
             className={`transition-all duration-300 ${
-              isActivelyZooming ? 'w-4 h-4 text-blue-400' : 'w-3 h-3 text-gray-500'
+              isActivelyZooming ? 'w-4 h-4' : 'w-3 h-3 text-gray-500'
             }`}
+            style={isActivelyZooming ? { color: annotationColors.cyan } : {}}
           >
             <path d="M9 6a.75.75 0 01.75.75v1.5h1.5a.75.75 0 010 1.5h-1.5v1.5a.75.75 0 01-1.5 0v-1.5h-1.5a.75.75 0 010-1.5h1.5v-1.5A.75.75 0 019 6z" />
             <path fillRule="evenodd" d="M2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9zm7-5.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" clipRule="evenodd" />

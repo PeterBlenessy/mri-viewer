@@ -237,7 +237,7 @@ export function FileDropzone({ className, onFilesLoaded }: FileDropzoneProps) {
 
           <button
             onClick={handleDirectoryPicker}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={combinedLoading}
           >
             Select Folder

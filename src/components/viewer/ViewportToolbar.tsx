@@ -10,6 +10,7 @@ import { mockDetector } from '@/lib/ai/mockVertebralDetector'
 import { claudeDetector } from '@/lib/ai/claudeVisionDetector'
 import { geminiDetector } from '@/lib/ai/geminiVisionDetector'
 import { openaiDetector } from '@/lib/ai/openaiVisionDetector'
+import { uiColors } from '@/lib/colors'
 
 interface ViewportToolbarProps {
   className?: string
@@ -354,19 +355,12 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
           className={`p-2 rounded transition-colors ${
             !currentInstance
               ? 'text-gray-600 cursor-not-allowed'
-              : 'text-gray-300 hover:bg-[#2a2a2a]'
+              : showPresets
+              ? 'text-white hover:bg-[#2a2a2a]'
+              : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'
           }`}
         >
-          <MonitorCog
-            size={16}
-            className={`${
-              !currentInstance
-                ? ''
-                : showPresets
-                ? 'text-blue-500'
-                : 'hover:text-blue-500'
-            }`}
-          />
+          <MonitorCog size={16} />
         </button>
         {showPresets && (
           <div className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl py-2 z-50 min-w-[200px]">
@@ -409,11 +403,13 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
         className={`p-2 rounded transition-colors ${
           !currentInstance
             ? 'text-gray-600 cursor-not-allowed'
-            : 'text-gray-300 hover:bg-[#2a2a2a] hover:text-white'
+            : isCurrentFavorite
+            ? 'text-white hover:bg-[#2a2a2a]'
+            : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'
         }`}
       >
         {isCurrentFavorite ? (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-yellow-500">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clipRule="evenodd" />
           </svg>
         ) : (
@@ -509,8 +505,8 @@ function ToolbarButton({ onClick, title, icon, active = false, disabled = false,
         disabled
           ? 'text-gray-600 cursor-not-allowed'
           : active
-          ? 'bg-blue-600 text-white hover:bg-blue-700'
-          : 'text-gray-300 hover:bg-[#2a2a2a] hover:text-white'
+          ? 'text-white hover:bg-[#2a2a2a]'
+          : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'
       }`}
     >
       {icon}

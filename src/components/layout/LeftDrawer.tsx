@@ -272,7 +272,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
                               {formatDate(entry.loadedAt)}
                             </span>
                             {!isLoaded && canReload && (
-                              <span className="text-xs text-blue-500">Click to reload</span>
+                              <span className="text-xs text-white">Click to reload</span>
                             )}
                             {!isLoaded && !canReload && (
                               <span className="text-xs text-yellow-500">Unavailable</span>
