@@ -7,7 +7,8 @@ import { ThumbnailStrip } from './components/viewer/ThumbnailStrip'
 import { KeyboardShortcutsHelp } from './components/viewer/KeyboardShortcutsHelp'
 import { HelpDialog } from './components/help/HelpDialog'
 import { FavoritesPanel } from './components/favorites/FavoritesPanel'
-import { LeftDrawer } from './components/layout/LeftDrawer'
+import { LeftDrawer, LeftDrawerState } from './components/layout/LeftDrawer'
+import { ResizeHandle } from './components/layout/ResizeHandle'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { useStudyStore } from './stores/studyStore'
 import { useRecentStudiesStore } from './stores/recentStudiesStore'
@@ -34,12 +35,18 @@ function App() {
   const hasAttemptedAutoLoadRef = useRef(false)
 
   // Panel visibility state
-  const [showLeftDrawer, setShowLeftDrawer] = useState(() => {
-    const saved = localStorage.getItem('leftDrawerOpen')
-    return saved ? JSON.parse(saved) : false
+  const [leftDrawerState, setLeftDrawerState] = useState<LeftDrawerState>(() => {
+    const saved = localStorage.getItem('leftDrawerState')
+    return (saved as LeftDrawerState) || 'minimized'
   })
   const [showRightSidebar, setShowRightSidebar] = useState(true)
   const [showThumbnailStrip, setShowThumbnailStrip] = useState(true)
+
+  // Right sidebar width state
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('rightSidebarWidth')
+    return saved ? parseInt(saved) : 256 // Default 256px (w-64)
+  })
 
   const theme = useSettingsStore((state) => state.theme)
   const hidePersonalInfo = useSettingsStore((state) => state.hidePersonalInfo)
@@ -78,16 +85,40 @@ function App() {
 
   // Save left drawer state to localStorage
   useEffect(() => {
-    localStorage.setItem('leftDrawerOpen', JSON.stringify(showLeftDrawer))
-  }, [showLeftDrawer])
+    localStorage.setItem('leftDrawerState', leftDrawerState)
+  }, [leftDrawerState])
+
+  // Save right sidebar width to localStorage
+  useEffect(() => {
+    localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString())
+  }, [rightSidebarWidth])
 
   // Enable keyboard shortcuts
-  useKeyboardShortcuts({ onToggleHelp: () => setShowKeyboardShortcuts(!showKeyboardShortcuts) })
+  useKeyboardShortcuts({
+    onToggleHelp: () => setShowKeyboardShortcuts(!showKeyboardShortcuts),
+    onToggleLeftDrawer: () => {
+      // Cycle: expanded → minimized → hidden → expanded
+      setLeftDrawerState((prev) => {
+        if (prev === 'expanded') return 'minimized'
+        if (prev === 'minimized') return 'hidden'
+        return 'expanded'
+      })
+    }
+  })
 
   const handleFilesLoaded = () => {
     setHasProcessedStudies(false) // Reset so we process the new studies
     setIsAutoLoading(false)
     setShowDropzone(false)
+  }
+
+  // Handle right sidebar resize
+  const handleRightSidebarResize = (deltaX: number) => {
+    setRightSidebarWidth((prev) => {
+      const newWidth = prev + deltaX
+      // Clamp to min (192px) and max (512px)
+      return Math.max(192, Math.min(512, newWidth))
+    })
   }
 
   // Auto-hide dropzone when studies are loaded (e.g., from recent studies reload)
@@ -350,8 +381,11 @@ function App() {
         <div className={`flex items-center gap-2 px-3 py-2 rounded ${theme === 'dark' ? 'bg-[#0f0f0f]' : 'bg-gray-100'}`}>
           {/* Left Panel Toggle */}
           <button
-            onClick={() => setShowLeftDrawer(!showLeftDrawer)}
-            className={`p-2 rounded transition-colors ${showLeftDrawer ? (theme === 'dark' ? 'bg-[#2a2a2a] text-white' : 'bg-gray-300 text-gray-900') : (theme === 'dark' ? 'hover:bg-[#1a1a1a] text-gray-500' : 'hover:bg-gray-200 text-gray-400')}`}
+            onClick={() => {
+              // Cycle: expanded → minimized → expanded (skip hidden for header toggle)
+              setLeftDrawerState((prev) => prev === 'expanded' ? 'minimized' : 'expanded')
+            }}
+            className={`p-2 rounded transition-colors ${leftDrawerState === 'expanded' ? (theme === 'dark' ? 'bg-[#2a2a2a] text-white' : 'bg-gray-300 text-gray-900') : (theme === 'dark' ? 'hover:bg-[#1a1a1a] text-gray-500' : 'hover:bg-gray-200 text-gray-400')}`}
             title="Toggle Left Panel"
           >
             <PanelLeft size={18} />
@@ -387,16 +421,6 @@ function App() {
           >
             {hidePersonalInfo ? <ShieldCheck size={18} /> : <ShieldOff size={18} />}
           </button>
-
-          {/* Help Button */}
-          <button
-            onClick={() => setShowHelp(true)}
-            className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 transition-colors ${theme === 'dark' ? 'hover:bg-[#1a1a1a] text-gray-300' : 'hover:bg-gray-200 text-gray-700'}`}
-            title="Help & Documentation"
-          >
-            <span>?</span>
-            <span>Help</span>
-          </button>
         </div>
       </header>
 
@@ -404,8 +428,7 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Drawer */}
         <LeftDrawer
-          isOpen={showLeftDrawer}
-          setIsOpen={setShowLeftDrawer}
+          state={leftDrawerState}
           onLoadNewFiles={() => setShowDropzone(true)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
@@ -467,11 +490,23 @@ function App() {
             </div>
 
             {/* Sidebar */}
-            <aside className={`flex flex-col overflow-hidden border-l transition-all duration-300 ease-in-out flex-shrink-0 ${
-              showRightSidebar ? 'w-64' : 'w-0 border-l-0'
-            } ${theme === 'dark' ? 'bg-[#1a1a1a] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
+            <aside
+              className={`flex overflow-hidden border-l transition-all duration-300 ease-in-out flex-shrink-0 ${
+                showRightSidebar ? '' : 'w-0 border-l-0'
+              } ${theme === 'dark' ? 'bg-[#1a1a1a] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}
+              style={showRightSidebar ? { width: `${rightSidebarWidth}px` } : undefined}
+            >
               {showRightSidebar && (
                 <>
+                {/* Resize Handle */}
+                <ResizeHandle
+                  onResize={handleRightSidebarResize}
+                  side="right"
+                  theme={theme}
+                />
+
+                {/* Sidebar Content */}
+                <div className="flex-1 flex flex-col overflow-hidden">
               {/* Study/Series Browser - Collapsible, Persistent */}
               <div className={`border-b ${theme === 'dark' ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
                 <button
@@ -506,8 +541,8 @@ function App() {
                   </div>
                 )}
               </div>
-
-              </>
+                </div>
+                </>
               )}
             </aside>
           </>

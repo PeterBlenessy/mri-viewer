@@ -4,9 +4,10 @@ import { useViewportStore } from '@/stores/viewportStore'
 
 interface UseKeyboardShortcutsProps {
   onToggleHelp?: () => void
+  onToggleLeftDrawer?: () => void
 }
 
-export function useKeyboardShortcuts({ onToggleHelp }: UseKeyboardShortcutsProps = {}) {
+export function useKeyboardShortcuts({ onToggleHelp, onToggleLeftDrawer }: UseKeyboardShortcutsProps = {}) {
   const currentSeries = useStudyStore((state) => state.currentSeries)
   const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
   const { nextInstance, previousInstance, setCurrentInstance } = useStudyStore()
@@ -107,6 +108,16 @@ export function useKeyboardShortcuts({ onToggleHelp }: UseKeyboardShortcutsProps
             onToggleHelp()
           }
           break
+
+        // Toggle Left Drawer (Ctrl/Cmd + \)
+        case '\\':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault()
+            if (onToggleLeftDrawer) {
+              onToggleLeftDrawer()
+            }
+          }
+          break
       }
     }
 
@@ -124,6 +135,7 @@ export function useKeyboardShortcuts({ onToggleHelp }: UseKeyboardShortcutsProps
     resetSettings,
     setInvert,
     settings.invert,
-    onToggleHelp
+    onToggleHelp,
+    onToggleLeftDrawer
   ])
 }

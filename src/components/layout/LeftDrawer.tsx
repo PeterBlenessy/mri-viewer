@@ -10,17 +10,19 @@ import {
 } from '@/lib/storage/directoryHandleStorage'
 import { parseDicomFilesWithDirectories } from '@/lib/dicom/parser'
 import { getCachedStudies, cacheStudies } from '@/lib/storage/studyCache'
+import { LeftDrawerIconBar } from './LeftDrawerIconBar'
+
+export type LeftDrawerState = 'expanded' | 'minimized' | 'hidden'
 
 interface LeftDrawerProps {
-  isOpen: boolean
-  setIsOpen: (open: boolean) => void
+  state: LeftDrawerState
   onLoadNewFiles: () => void
   onOpenSettings: () => void
   onOpenKeyboardShortcuts: () => void
   onOpenHelp: () => void
 }
 
-export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, onOpenKeyboardShortcuts, onOpenHelp }: LeftDrawerProps) {
+export function LeftDrawer({ state, onLoadNewFiles, onOpenSettings, onOpenKeyboardShortcuts, onOpenHelp }: LeftDrawerProps) {
 
   const recentStudies = useRecentStudiesStore((state) => state.recentStudies)
   const clearRecentStudies = useRecentStudiesStore((state) => state.clearRecentStudies)
@@ -200,12 +202,27 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  // Hidden state - render nothing
+  if (state === 'hidden') {
+    return <aside className="w-0" />
+  }
+
+  // Minimized state - render icon bar
+  if (state === 'minimized') {
+    return (
+      <LeftDrawerIconBar
+        onLoadNewFiles={onLoadNewFiles}
+        onOpenSettings={onOpenSettings}
+        onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
+        onOpenHelp={onOpenHelp}
+      />
+    )
+  }
+
+  // Expanded state - render full drawer
   return (
-    <aside className={`border-r flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
-      isOpen ? 'w-64' : 'w-0 border-r-0'
-    } ${theme === 'dark' ? 'bg-[#121212] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
-      {isOpen && (
-        <>
+    <aside className={`w-64 border-r flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${theme === 'dark' ? 'bg-[#121212] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
+      <>
         {/* Recent Studies */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
@@ -354,8 +371,7 @@ export function LeftDrawer({ isOpen, setIsOpen, onLoadNewFiles, onOpenSettings, 
             <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Help & Documentation</span>
           </button>
         </div>
-        </>
-      )}
+      </>
     </aside>
   )
 }
