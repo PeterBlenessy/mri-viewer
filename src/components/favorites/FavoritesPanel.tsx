@@ -12,8 +12,6 @@ type ViewMode = 'text' | 'thumbnails'
 
 export function FavoritesPanel() {
   const favorites = useFavoritesStore((state) => state.favorites)
-  const removeFavorite = useFavoritesStore((state) => state.removeFavorite)
-  const clearAllFavorites = useFavoritesStore((state) => state.clearAllFavorites)
   const analyses = useAiAnalysisStore((state) => state.analyses)
   const studies = useStudyStore((state) => state.studies)
   const setCurrentSeries = useStudyStore((state) => state.setCurrentSeries)
@@ -22,7 +20,6 @@ export function FavoritesPanel() {
   const theme = useSettingsStore((state) => state.theme)
 
   const [showBatchExport, setShowBatchExport] = useState(false)
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // View mode with localStorage persistence
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -91,15 +88,6 @@ export function FavoritesPanel() {
     }, 100)
   }
 
-  const handleRemoveFavorite = (sopInstanceUID: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    removeFavorite(sopInstanceUID)
-  }
-
-  const handleClearAll = () => {
-    clearAllFavorites()
-    setShowClearConfirm(false)
-  }
 
   if (allMarkedImages.length === 0) {
     return (
@@ -162,36 +150,8 @@ export function FavoritesPanel() {
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.25 2.25 0 004.25 17.5h11.5A2.25 2.25 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .414-.336.75-.75.75H4.25a.75.75 0 01-.75-.75v-2.5z" />
               </svg>
             </button>
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              className={`text-xs transition-colors ${theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-              title="Clear all"
-            >
-              Clear
-            </button>
           </div>
         </div>
-
-        {/* Clear Confirmation */}
-        {showClearConfirm && (
-          <div className={`p-2 rounded text-xs mb-2 ${theme === 'dark' ? 'bg-red-900/20 border border-red-800/30' : 'bg-red-50 border border-red-200'}`}>
-            <p className={`mb-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>Clear all {allMarkedImages.length} marked images?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleClearAll}
-                className={`px-2 py-1 rounded text-xs ${theme === 'dark' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-500 hover:bg-red-600'} text-white`}
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className={`px-2 py-1 rounded text-xs ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Marked Images List - Text View */}
         {viewMode === 'text' && (
@@ -246,22 +206,6 @@ export function FavoritesPanel() {
                           </svg>
                         </div>
                       )}
-                      <div
-                        onClick={(e) => handleRemoveFavorite(favorite.sopInstanceUID, e)}
-                        className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-all cursor-pointer ${theme === 'dark' ? 'hover:bg-red-900/30' : 'hover:bg-red-100'}`}
-                        title="Remove"
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-red-400' : 'text-red-500'}`}
-                        >
-                          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                        </svg>
-                      </div>
                     </div>
                   </div>
                 </button>
@@ -279,7 +223,6 @@ export function FavoritesPanel() {
                 favorite={favorite}
                 isActive={currentInstance?.sopInstanceUID === favorite.sopInstanceUID}
                 onClick={() => handleFavoriteClick(favorite)}
-                onRemove={(e) => handleRemoveFavorite(favorite.sopInstanceUID, e)}
                 theme={theme}
               />
             ))}
@@ -302,11 +245,10 @@ interface FavoriteThumbnailProps {
   favorite: FavoriteImage
   isActive: boolean
   onClick: () => void
-  onRemove: (e: React.MouseEvent) => void
   theme: 'dark' | 'light'
 }
 
-function FavoriteThumbnail({ favorite, isActive, onClick, onRemove, theme }: FavoriteThumbnailProps) {
+function FavoriteThumbnail({ favorite, isActive, onClick, theme }: FavoriteThumbnailProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const loadedRef = useRef(false)
   const favorites = useFavoritesStore((state) => state.favorites)
@@ -377,7 +319,7 @@ function FavoriteThumbnail({ favorite, isActive, onClick, onRemove, theme }: Fav
       </div>
       {/* Star icon for favorites */}
       {isFavorite && (
-        <div className="absolute top-1 right-1 p-0.5 rounded bg-black/40 group-hover:opacity-0 transition-opacity" title="Favorited">
+        <div className="absolute top-1 right-1 p-0.5 rounded bg-black/40" title="Favorited">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
@@ -415,23 +357,6 @@ function FavoriteThumbnail({ favorite, isActive, onClick, onRemove, theme }: Fav
           </svg>
         </div>
       )}
-      {/* Remove button - shows on hover, replaces star icon position */}
-      <div
-        onClick={onRemove}
-        className={`absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded transition-all cursor-pointer z-10 ${theme === 'dark' ? 'bg-red-900/70 hover:bg-red-900' : 'bg-red-500/70 hover:bg-red-500'}`}
-        title="Remove"
-        role="button"
-        tabIndex={0}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          className="w-3.5 h-3.5 text-white"
-        >
-          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
-      </div>
     </button>
   )
 }
