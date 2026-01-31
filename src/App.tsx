@@ -159,17 +159,32 @@ function App() {
           const cachedStudies = getCachedStudies(mostRecent.folderPath)
 
           if (cachedStudies) {
-            setStudies(cachedStudies)
-
+            // Load only the target study first for fast initial display
             const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+
             if (targetStudy) {
+              // Set only the target study initially
+              setStudies([targetStudy])
               setCurrentStudy(targetStudy.studyInstanceUID)
+              setIsAutoLoading(false)
+              setShowDropzone(false)
+              console.log(`[App] ⚡ Loaded target study from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
+
+              // Load remaining studies in the background after a short delay
+              if (cachedStudies.length > 1) {
+                setTimeout(() => {
+                  setStudies(cachedStudies)
+                  console.log(`[App] 📦 Background loaded ${cachedStudies.length - 1} additional studies`)
+                }, 100)
+              }
             } else {
+              // Target study not found, load all studies
+              setStudies(cachedStudies)
               setCurrentStudy(cachedStudies[0].studyInstanceUID)
+              setIsAutoLoading(false)
+              setShowDropzone(false)
+              console.log(`[App] ⚡ Loaded all studies from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
             }
-            setIsAutoLoading(false)
-            setShowDropzone(false)
-            console.log(`[App] ⚡ Loaded from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
             return
           }
 
@@ -216,17 +231,32 @@ function App() {
           const cachedStudies = getCachedStudies(mostRecent.directoryHandleId)
 
           if (cachedStudies) {
-            setStudies(cachedStudies)
-
+            // Load only the target study first for fast initial display
             const targetStudy = cachedStudies.find((s) => s.studyInstanceUID === mostRecent.studyInstanceUID)
+
             if (targetStudy) {
+              // Set only the target study initially
+              setStudies([targetStudy])
               setCurrentStudy(targetStudy.studyInstanceUID)
+              setIsAutoLoading(false)
+              setShowDropzone(false)
+              console.log(`[App] ⚡ Loaded target study from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
+
+              // Load remaining studies in the background after a short delay
+              if (cachedStudies.length > 1) {
+                setTimeout(() => {
+                  setStudies(cachedStudies)
+                  console.log(`[App] 📦 Background loaded ${cachedStudies.length - 1} additional studies`)
+                }, 100)
+              }
             } else {
+              // Target study not found, load all studies
+              setStudies(cachedStudies)
               setCurrentStudy(cachedStudies[0].studyInstanceUID)
+              setIsAutoLoading(false)
+              setShowDropzone(false)
+              console.log(`[App] ⚡ Loaded all studies from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
             }
-            setIsAutoLoading(false)
-            setShowDropzone(false)
-            console.log(`[App] ⚡ Loaded from cache in ${(performance.now() - startTime).toFixed(0)}ms`)
             return
           }
 

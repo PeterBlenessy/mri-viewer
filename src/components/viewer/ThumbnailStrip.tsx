@@ -1,11 +1,10 @@
-import { useEffect, useRef, forwardRef } from 'react'
+import { useEffect, useRef, forwardRef, useState } from 'react'
 import { useStudyStore } from '@/stores/studyStore'
 import { useFavoritesStore } from '@/stores/favoritesStore'
 import { useAiAnalysisStore } from '@/stores/aiAnalysisStore'
 import { useAnnotationStore } from '@/stores/annotationStore'
 import { cornerstone } from '@/lib/cornerstone/initCornerstone'
 import { DicomInstance } from '@/types'
-import { uiColors, annotationColors } from '@/lib/colors'
 
 export function ThumbnailStrip() {
   const currentSeries = useStudyStore((state) => state.currentSeries)
@@ -60,11 +59,16 @@ interface ThumbnailProps {
 
 const Thumbnail = forwardRef<HTMLDivElement, ThumbnailProps>(
   ({ instance, index, isSelected, onClick }, ref) => {
-    const canvasRef = useRef<HTMLDivElement>(null)
+    const canvasRef = useRef<HTMLDivElement | null>(null)
+    const containerRef = useRef<HTMLDivElement | null>(null)
     const loadedRef = useRef(false)
+    const observerRef = useRef<IntersectionObserver | null>(null)
+    const [isVisible, setIsVisible] = useState(false)
+    const [isLoaded, setIsLoaded] = useState(false)
 
     const currentStudy = useStudyStore((state) => state.currentStudy)
     const currentSeries = useStudyStore((state) => state.currentSeries)
+    const currentInstanceIndex = useStudyStore((state) => state.currentInstanceIndex)
     const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
 
     // Subscribe to favorites array to trigger re-render on changes
@@ -86,8 +90,51 @@ const Thumbnail = forwardRef<HTMLDivElement, ThumbnailProps>(
     const toggleMarkerVisibility = useAnnotationStore((state) => state.toggleMarkerVisibility)
     const areMarkersVisible = useAnnotationStore((state) => state.areMarkersVisible(instance.sopInstanceUID))
 
+    // Set up Intersection Observer for lazy loading with priority for nearby thumbnails
     useEffect(() => {
-      if (!canvasRef.current || loadedRef.current) return
+      const element = containerRef.current
+      if (!element) return
+
+      // Priority loading:
+      // 1. Always load the selected thumbnail immediately
+      // 2. Preload thumbnails within 5 positions of current (for smooth navigation)
+      // 3. Lazy load others when they enter viewport
+      const distanceFromCurrent = Math.abs(index - currentInstanceIndex)
+      const shouldPreload = isSelected || distanceFromCurrent <= 5
+
+      if (shouldPreload) {
+        setIsVisible(true)
+        return
+      }
+
+      // For other thumbnails, use Intersection Observer
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setIsVisible(true)
+              // Once visible, stop observing
+              observerRef.current?.disconnect()
+            }
+          })
+        },
+        {
+          root: null,
+          rootMargin: '100px', // Start loading slightly before entering viewport
+          threshold: 0.1,
+        }
+      )
+
+      observerRef.current.observe(element)
+
+      return () => {
+        observerRef.current?.disconnect()
+      }
+    }, [isSelected, index, currentInstanceIndex])
+
+    // Load the thumbnail image when it becomes visible
+    useEffect(() => {
+      if (!canvasRef.current || loadedRef.current || !isVisible) return
 
       const element = canvasRef.current
 
@@ -110,8 +157,10 @@ const Thumbnail = forwardRef<HTMLDivElement, ThumbnailProps>(
           }
 
           loadedRef.current = true
+          setIsLoaded(true)
         } catch (err) {
           console.error(`Failed to load thumbnail for instance ${index}:`, err)
+          setIsLoaded(true) // Set loaded even on error to stop showing spinner
         }
       }
 
@@ -126,11 +175,20 @@ const Thumbnail = forwardRef<HTMLDivElement, ThumbnailProps>(
           // Ignore disable errors
         }
       }
-    }, [instance.imageId, index])
+    }, [instance.imageId, index, isVisible])
 
     return (
       <div
-        ref={ref}
+        ref={(el) => {
+          // Set both refs - our internal ref and the forwarded ref
+          containerRef.current = el
+          if (typeof ref === 'function') {
+            ref(el)
+          } else if (ref && 'current' in ref) {
+            // TypeScript guard - ensure ref is mutable
+            ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = el
+          }
+        }}
         onClick={onClick}
         className={`flex-shrink-0 relative group cursor-pointer ${
           isSelected ? 'ring-2 ring-[#4a4a4a]' : 'ring-1 ring-[#2a2a2a]'
@@ -138,13 +196,19 @@ const Thumbnail = forwardRef<HTMLDivElement, ThumbnailProps>(
       >
         <div
           ref={canvasRef}
-          className="w-20 h-20 bg-black"
+          className="w-20 h-20 bg-black relative"
           style={{
             minWidth: '80px',
             minHeight: '80px',
             imageRendering: 'crisp-edges' // Pixel-perfect rendering
           }}
-        />
+        >
+          {!isLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f0f]">
+              <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
         <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs py-0.5 text-center">
           {index + 1}
         </div>
