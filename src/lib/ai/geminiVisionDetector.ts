@@ -5,6 +5,7 @@ import { DetectionResult, AnalysisResult, VisionDetector, VertebraResponse } fro
 import { AiAnalysis } from '@/stores/aiAnalysisStore'
 import { dicomToBase64Png } from './dicomImageUtils'
 import { parseApiError } from './errorHandler'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 /**
  * Gemini 3 Flash Vision detector with Agentic Vision (code execution).
@@ -287,6 +288,12 @@ Rules:
       // Convert DICOM to base64 PNG
       const { data: imageData } = await dicomToBase64Png()
 
+      // Get the language preference from settings
+      const language = useSettingsStore.getState().aiResponseLanguage || 'English'
+      const languageInstruction = language !== 'English'
+        ? `\n\nIMPORTANT: Please provide your entire response in ${language}.`
+        : ''
+
       // Call Gemini API with code execution for agentic vision analysis
       const response = await this.client!.models.generateContent({
         model: 'gemini-2.0-flash',
@@ -324,7 +331,7 @@ IMPORTANT:
 - Use clear medical terminology but explain complex terms
 - Note any limitations in your analysis
 - If you're uncertain about any findings, explicitly state this
-- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context
+- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context${languageInstruction}
 
 Please provide your analysis in a clear, structured format.`,
               },

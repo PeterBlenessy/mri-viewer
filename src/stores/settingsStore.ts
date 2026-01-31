@@ -26,6 +26,7 @@ export interface SettingsState {
   geminiApiKey: string // Gemini API key (stored separately so users can switch without re-entering)
   openaiApiKey: string // OpenAI API key (stored separately so users can switch without re-entering)
   aiConsentGiven: boolean // User has consented to sending images to external API
+  aiResponseLanguage: string // Language for AI analysis responses (e.g., 'English', 'Swedish')
 
   // Actions
   setTheme: (theme: Theme) => void
@@ -40,6 +41,7 @@ export interface SettingsState {
   setGeminiApiKey: (key: string) => void
   setOpenaiApiKey: (key: string) => void
   setAiConsentGiven: (consent: boolean) => void
+  setAiResponseLanguage: (language: string) => void
   resetToDefaults: () => void
 }
 
@@ -58,6 +60,7 @@ const defaultSettings = {
   geminiApiKey: '',
   openaiApiKey: '',
   aiConsentGiven: false,
+  aiResponseLanguage: 'English',
 }
 
 function loadSettings(): Partial<typeof defaultSettings> {
@@ -160,6 +163,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setAiConsentGiven: (aiConsentGiven) => {
       set({ aiConsentGiven })
       saveSettings({ ...get(), aiConsentGiven })
+    },
+
+    setAiResponseLanguage: (aiResponseLanguage) => {
+      set({ aiResponseLanguage })
+      saveSettings({ ...get(), aiResponseLanguage })
     },
 
     resetToDefaults: () => {

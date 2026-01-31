@@ -5,6 +5,7 @@ import { DetectionResult, AnalysisResult, VisionDetector } from './types'
 import { dicomToBase64Png, parseVertebraJson } from './dicomImageUtils'
 import { AiAnalysis } from '@/stores/aiAnalysisStore'
 import { parseApiError } from './errorHandler'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 /**
  * Claude Vision API-based vertebral detector
@@ -179,6 +180,12 @@ If no vertebrae are visible, return: {"vertebrae": []}`,
       // Convert DICOM to base64 PNG and get dimensions
       const { data: imageData } = await dicomToBase64Png()
 
+      // Get the language preference from settings
+      const language = useSettingsStore.getState().aiResponseLanguage || 'English'
+      const languageInstruction = language !== 'English'
+        ? `\n\nIMPORTANT: Please provide your entire response in ${language}.`
+        : ''
+
       // Call Claude API with a more open-ended prompt
       const message = await this.client!.messages.create({
         model: 'claude-sonnet-4-5',
@@ -219,7 +226,7 @@ IMPORTANT:
 - Use clear medical terminology but explain complex terms
 - Note any limitations in your analysis
 - If you're uncertain about any findings, explicitly state this
-- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context
+- This is for educational/review purposes; clinical decisions should be made by qualified medical professionals with full patient context${languageInstruction}
 
 Please provide your analysis in a clear, structured format.`,
               },

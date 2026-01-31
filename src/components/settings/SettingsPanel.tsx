@@ -19,6 +19,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
   const geminiApiKey = useSettingsStore((state) => state.geminiApiKey)
   const openaiApiKey = useSettingsStore((state) => state.openaiApiKey)
   const aiConsentGiven = useSettingsStore((state) => state.aiConsentGiven)
+  const aiResponseLanguage = useSettingsStore((state) => state.aiResponseLanguage)
 
   const setTheme = useSettingsStore((state) => state.setTheme)
   const setScrollDirection = useSettingsStore((state) => state.setScrollDirection)
@@ -32,6 +33,7 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
   const setGeminiApiKey = useSettingsStore((state) => state.setGeminiApiKey)
   const setOpenaiApiKey = useSettingsStore((state) => state.setOpenaiApiKey)
   const setAiConsentGiven = useSettingsStore((state) => state.setAiConsentGiven)
+  const setAiResponseLanguage = useSettingsStore((state) => state.setAiResponseLanguage)
   const resetToDefaults = useSettingsStore((state) => state.resetToDefaults)
 
   const [showApiKey, setShowApiKey] = useState(false)
@@ -194,6 +196,29 @@ export function SettingsPanel({ show, onClose }: SettingsPanelProps) {
                     <option value="gemini">Gemini (Google)</option>
                     <option value="openai">OpenAI (GPT-4o)</option>
                     <option value="none">None (Mock Only)</option>
+                  </select>
+                </SettingsRow>
+
+                <SettingsRow label="Response Language" description="Language for AI analysis text" isDark={isDark}>
+                  <select
+                    value={aiResponseLanguage}
+                    onChange={(e) => setAiResponseLanguage(e.target.value)}
+                    className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isDark ? 'bg-[#0f0f0f] border-[#2a2a2a] text-white focus:ring-[#3a3a3a]' : 'bg-gray-100 border-gray-300 text-gray-900 focus:ring-gray-400'}`}
+                  >
+                    <option value="English">English</option>
+                    <option value="Swedish">Swedish</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Dutch">Dutch</option>
+                    <option value="Chinese">Chinese (Simplified)</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Arabic">Arabic</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Hindi">Hindi</option>
                   </select>
                 </SettingsRow>
 
