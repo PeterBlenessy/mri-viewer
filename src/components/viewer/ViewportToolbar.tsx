@@ -363,27 +363,27 @@ export function ViewportToolbar({ className = '', onExportClick }: ViewportToolb
           <MonitorCog size={16} />
         </button>
         {showPresets && (
-          <div className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl py-2 z-50 min-w-[200px]">
-            <div className="px-2 pb-1 mb-1 border-b border-[#2a2a2a]">
-              <p className="text-xs font-medium text-gray-400">Window Presets</p>
+          <div className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl py-1 z-50 min-w-[180px]">
+            <div className="px-2 pb-0.5 mb-0.5 border-b border-[#2a2a2a]">
+              <p className="text-[11px] font-medium text-gray-400">Window Presets</p>
             </div>
             {windowPresets.map((preset) => (
               <button
                 key={preset.name}
                 onClick={() => handlePresetClick(preset.brightness, preset.contrast)}
-                className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-[#2a2a2a] hover:text-white transition-colors"
+                className="w-full px-2 py-1 text-left text-xs text-gray-300 hover:bg-[#2a2a2a] hover:text-white transition-colors"
               >
                 <div className="font-medium">{preset.name}</div>
-                <div className="text-xs text-gray-500">C:{preset.contrast} B:{preset.brightness}</div>
+                <div className="text-[11px] text-gray-500">C:{preset.contrast} B:{preset.brightness}</div>
               </button>
             ))}
-            <div className="border-t border-[#2a2a2a] mt-1 pt-1 px-2">
+            <div className="border-t border-[#2a2a2a] mt-0.5 pt-0.5 px-2">
               <button
                 onClick={() => {
                   resetSettings()
                   setShowPresets(false)
                 }}
-                className="w-full px-2 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded transition-colors"
+                className="w-full px-2 py-1 text-[11px] font-medium text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded transition-colors"
               >
                 Reset to Default
               </button>
